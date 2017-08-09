@@ -1,9 +1,13 @@
 package cookie_stream
 
 
-import(
+import (
     "sync"
+    "time"
 )
+
+
+const EPOCH_SLEEP_TIME time.Duration = time.Millisecond * 100
 
 
 type CookieStreamStruct struct {
@@ -30,7 +34,7 @@ type ClickStream struct {
   CookieStreamInterface
   base_cpc float64
   clicks int
-  clicks_lock sync.Mutex
+  clicks_lock sync.Mutex  // TOOD(cripplet): Replace with channel communication instead.
 }
 
 
@@ -70,18 +74,22 @@ func (self *ClickStream) Click() {
 }
 
 
+func (self *ClickStream) GetAndResetClicks() int {
+  self.clicks_lock.Lock()
+  defer self.clicks_lock.Unlock()
+  var clicks int
+  clicks, self.clicks = self.clicks, 0
+  return clicks
+}
+
+
 func (self *ClickStream) Mine() {
   for {
-    var clicks int
-    {
-      self.clicks_lock.Lock()
-      defer self.clicks_lock.Unlock()
-      clicks = self.clicks
-      self.clicks = 0
-    }
-    self.cookie_channel <- float64(clicks) * self.base_cpc
+    time.Sleep(EPOCH_SLEEP_TIME)
+    self.cookie_channel <- float64(self.GetAndResetClicks()) * self.base_cpc
   }
 }
+
 
 func MakeMouseStream() MouseStream {
   return MouseStream{
@@ -91,7 +99,12 @@ func MakeMouseStream() MouseStream {
 
 
 func (self *BuildingStream) Mine() {
+  var last_sent time.Time = time.Now()
   for {
-    self.cookie_channel <- self.base_cps
+    time.Sleep(EPOCH_SLEEP_TIME)
+    var now time.Time = time.Now()
+    var cookies float64 = self.base_cps * now.Sub(last_sent).Seconds()
+    last_sent = now
+    self.cookie_channel <- cookies
   }
 }
