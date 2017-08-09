@@ -1,6 +1,3 @@
-# GOPATH directory ignore
-runtime/
-
 # Binaries for programs and plugins
 *.exe
 *.dll
