@@ -1,4 +1,4 @@
-package cookie_stream
+package cookie_clicker
 
 
 import (
@@ -10,28 +10,40 @@ import (
 const EPOCH_SLEEP_TIME time.Duration = time.Millisecond * 100
 
 
+// TODO(cripplet): Add upgrades []*Upgrade
 type CookieStreamStruct struct {
   cookie_channel chan float64
   name string
 }
 
 
+// TOOD(cripplet): Add GetModifier()
 type CookieStreamInterface interface {
   Mine()
+  GetCookieChannel()
+}
+
+
+type BaseStreamStruct struct {
+  CookieStreamStruct
+  CookieStreamInterface
+}
+
+
+func (self *BaseStreamStruct) GetCookieChannel() chan float64 {
+  return self.cookie_channel
 }
 
 
 type BuildingStream struct {
-  CookieStreamStruct
-  CookieStreamInterface
+  BaseStreamStruct
   n_instances int
   base_cps float64
 }
 
 
 type ClickStream struct {
-  CookieStreamStruct
-  CookieStreamInterface
+  BaseStreamStruct
   base_cpc float64
   clicks int
   clicks_lock sync.Mutex  // TOOD(cripplet): Replace with channel communication instead.
@@ -51,9 +63,16 @@ func MakeCookieStreamStruct(name string) CookieStreamStruct {
 }
 
 
+func MakeBaseStreamStruct(name string) BaseStreamStruct {
+  return BaseStreamStruct{
+      CookieStreamStruct: MakeCookieStreamStruct(name),
+  }
+}
+
+
 func MakeBuildingStream(name string, base_cps float64) BuildingStream {
   return BuildingStream{
-      CookieStreamStruct: MakeCookieStreamStruct(name),
+      BaseStreamStruct: MakeBaseStreamStruct(name),
       base_cps: base_cps,
   }
 }
@@ -61,7 +80,7 @@ func MakeBuildingStream(name string, base_cps float64) BuildingStream {
 
 func MakeClickStream() ClickStream {
   return ClickStream{
-      CookieStreamStruct: MakeCookieStreamStruct("Click"),
+      BaseStreamStruct: MakeBaseStreamStruct("Click"),
       base_cpc: 1,
   }
 }

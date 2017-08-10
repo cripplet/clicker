@@ -1,4 +1,4 @@
-package cookie_stream
+package cookie_clicker
 
 
 import (
