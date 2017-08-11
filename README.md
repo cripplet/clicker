@@ -1,3 +1,3 @@
 clicker
 ====
-Experimental CookieClicker clone in Go
+Experimental [CookieClicker](http://orteil.dashnet.org/cookieclicker) clone in Go
