@@ -25,9 +25,9 @@ func TestGenerateCookieLoop(t *testing.T) {
 	var s CookieStream = MakeCookieStream(MOUSE)
 
 	var n time.Time = time.Now()
-	go generateCookieLoop(&s, n, n.Add(time.Duration(1)*time.Second))
+	go generateCookieLoop(&s, n, n.Add(ONE_SECOND_DURATION))
 
-	var n_cookies float64 = <-s.cookie_channel
+	var n_cookies float64 = GetCookie(&s)
 	if n_cookies != BUILDING_CPS_LOOKUP[MOUSE] {
 		t.Error(fmt.Sprintf("Expected %e cookies, got %e", BUILDING_CPS_LOOKUP[MOUSE], n_cookies))
 	}
@@ -41,12 +41,12 @@ func TestGenerateUpgrade(t *testing.T) {
 		BUILDING_UPGRADE_CHANNEL_LOOKUP[MOUSE] <- upgrade_ratio
 	}()
 
-	time.Sleep(time.Second) // Wait until we're "sure" the upgrade channel is blocking.
+	time.Sleep(EPOCH_TIME) // Wait until we're "sure" the upgrade channel is blocking.
 
 	var n time.Time = time.Now()
 	go generateCookieLoop(&s, n, n.Add(ONE_SECOND_DURATION))
 
-	var n_cookies float64 = <-s.cookie_channel
+	var n_cookies float64 = GetCookie(&s)
 	if n_cookies != upgrade_ratio*BUILDING_CPS_LOOKUP[MOUSE] {
 		t.Error(fmt.Sprintf("Expected %e cookies, got %e", upgrade_ratio*BUILDING_CPS_LOOKUP[MOUSE], n_cookies))
 	}
@@ -55,12 +55,16 @@ func TestGenerateUpgrade(t *testing.T) {
 func TestGenerateCookie(t *testing.T) {
 	var s CookieStream = MakeCookieStream(MOUSE)
 	go generateCookie(&s)
-
 	time.Sleep(time.Second)
 
-	var n_cookies float64 = <-s.cookie_channel
+	var n_cookies float64
+	var current_buffer_len int = len(s.cookie_channel)
+	for i := 0; i < current_buffer_len + 1; i++ {
+		n_cookies += GetCookie(&s)
+	}
+
 	if math.Abs(n_cookies-BUILDING_CPS_LOOKUP[MOUSE]) > math.Max(n_cookies, BUILDING_CPS_LOOKUP[MOUSE])*EPSILON_PERCENT {
 		t.Error(fmt.Sprintf("Expected %e cookies, got %e", BUILDING_CPS_LOOKUP[MOUSE], n_cookies))
 	}
-	s.done_channel <- true
+	s.cookie_done_channel <- true
 }
