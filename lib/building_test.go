@@ -59,7 +59,7 @@ func TestGenerateCookie(t *testing.T) {
 
 	var n_cookies float64
 	var current_buffer_len int = len(s.cookie_channel)
-	for i := 0; i < current_buffer_len + 1; i++ {
+	for i := 0; i < current_buffer_len+1; i++ {
 		n_cookies += GetCookie(&s)
 	}
 

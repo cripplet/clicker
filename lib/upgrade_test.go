@@ -43,7 +43,7 @@ func TestActivateBuildingUpgrade(t *testing.T) {
 	go activateBuildingUpgrade(&b)
 
 	for i := 0; i < 10; i++ {
-	        if !<-b.activated_send_channel {
+		if !<-b.activated_send_channel {
 			t.Error("Expected channel activated, was not")
 		}
 	}
@@ -58,7 +58,7 @@ func TestListenBuildingUpgradeLoop(t *testing.T) {
 	b.activated_channel <- true
 
 	for i := 0; i < 10; i++ {
-	        if !<-b.activated_send_channel {
+		if !<-b.activated_send_channel {
 			t.Error("Expected channel activated, was not")
 		}
 	}
@@ -80,7 +80,7 @@ func TestListenBuildingUpgrade(t *testing.T) {
 	b.activated_channel <- true
 
 	for i := 0; i < 10; i++ {
-	        if !<-b.activated_send_channel {
+		if !<-b.activated_send_channel {
 			t.Error("Expected channel activated, was not")
 		}
 	}
@@ -102,7 +102,7 @@ func TestStartStopBuildingUpgrade(t *testing.T) {
 	ActivateBuildingUpgrade(&b)
 
 	for i := 0; i < 10; i++ {
-	        if !<-b.activated_send_channel {
+		if !<-b.activated_send_channel {
 			t.Error("Expected channel activated, was not")
 		}
 	}
@@ -141,8 +141,8 @@ func TestGetAggregateUpgradeRatio(t *testing.T) {
 	time.Sleep(EPOCH_TIME)
 
 	upgrade_ratio = GetAggregateUpgradeRatio(upgrades)
-	if upgrade_ratio != BUILDING_UPGRADE_RATIO * BUILDING_UPGRADE_RATIO {
-		t.Error(fmt.Sprintf("Expected upgrade ratio %e, got %e", BUILDING_UPGRADE_RATIO * BUILDING_UPGRADE_RATIO, upgrade_ratio))
+	if upgrade_ratio != BUILDING_UPGRADE_RATIO*BUILDING_UPGRADE_RATIO {
+		t.Error(fmt.Sprintf("Expected upgrade ratio %e, got %e", BUILDING_UPGRADE_RATIO*BUILDING_UPGRADE_RATIO, upgrade_ratio))
 	}
 
 	StopBuildingUpgrade(&b1)

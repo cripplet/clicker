@@ -21,13 +21,13 @@ var BUILDING_UPGRADE_TYPE_REVERSE_LOOKUP map[BuildingType][]UpgradeID = map[Buil
 }
 
 type BuildingUpgrade struct {
-	name          string
-	upgrade_ratio float64
-	activated_channel chan bool
-	activated_done_channel chan bool
-	activated_send_channel chan bool
+	name                        string
+	upgrade_ratio               float64
+	activated_channel           chan bool
+	activated_done_channel      chan bool
+	activated_send_channel      chan bool
 	activated_send_done_channel chan bool
-	cost float64
+	cost                        float64
 }
 
 func activateBuildingUpgradeLoop(b *BuildingUpgrade) {
@@ -69,7 +69,7 @@ func listenBuildingUpgrade(b *BuildingUpgrade) {
 }
 
 func StartBuildingUpgrade(b *BuildingUpgrade) {
-        go listenBuildingUpgrade(b)
+	go listenBuildingUpgrade(b)
 }
 
 func StopBuildingUpgrade(b *BuildingUpgrade) {
@@ -83,11 +83,11 @@ func ActivateBuildingUpgrade(b *BuildingUpgrade) {
 
 func MakeBuildingUpgrade(name string, upgrade_ratio float64, cost float64) BuildingUpgrade {
 	return BuildingUpgrade{
-		name: name,
-		upgrade_ratio: upgrade_ratio,
-		activated_channel: make(chan bool, 1),
-		activated_done_channel: make(chan bool),
-		activated_send_channel: make(chan bool, 1),
+		name:                        name,
+		upgrade_ratio:               upgrade_ratio,
+		activated_channel:           make(chan bool, 1),
+		activated_done_channel:      make(chan bool),
+		activated_send_channel:      make(chan bool, 1),
 		activated_send_done_channel: make(chan bool),
 		cost: cost,
 	}
@@ -109,7 +109,7 @@ func GetAggregateUpgradeRatio(upgrades []*BuildingUpgrade) float64 {
 		var is_activated bool = false
 		select {
 		case is_activated = <-upgrade.activated_send_channel:
-		case<-time.After(CHANNEL_TIMEOUT):
+		case <-time.After(CHANNEL_TIMEOUT):
 		}
 		if is_activated {
 			aggregate_upgrade_ratio *= upgrade.upgrade_ratio
