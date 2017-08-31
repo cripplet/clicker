@@ -27,27 +27,30 @@ func NewGameState() *GameStateStruct {
 }
 
 func (self *GameStateStruct) CalculateCPS(u map[UpgradeID]UpgradeInterface) float64 {
-	building_cps_scratch := make(map[BuildingType]float64)
-	for k, v := range building_cps {
-		building_cps_scratch[k] = v
+	building_cps_copy := make(map[BuildingType]float64)
+	for building_type, building_type_cps := range BUILDING_CPS_LOOKUP {
+		building_cps_copy[building_type] = building_type_cps
 	}
 
+	bought_upgrades := make([]UpgradeInterface, 0)
 	for upgrade_id, upgrade := range u {
-		if is_bought, ok := (*self).upgrade_status[upgrade_id]; ok {
-			if is_bought {
-				if upgrade.GetBuildingType() < BUILDING_TYPE_ENUM_EOF {
-					building_cps_scratch[upgrade.GetBuildingType()] *= upgrade.GetBuildingMultiplier(self)
-				}
-			}
+		if (*self).upgrade_status[upgrade_id] {
+			bought_upgrades = append(bought_upgrades, upgrade)
 		}
 	}
 
-	var cps float64
-	for building_type, building_cps := range building_cps_scratch {
-		cps += float64((*self).n_buildings[building_type]) * building_cps
+	for _, upgrade := range bought_upgrades {
+		if upgrade.GetBuildingType() < BUILDING_TYPE_ENUM_EOF {
+			building_cps_copy[upgrade.GetBuildingType()] *= upgrade.GetBuildingMultiplier(self)
+		}
 	}
 
-	(*self).cps = cps
+	var total_cps float64
+	for building_type, cps := range building_cps_copy {
+		total_cps += float64((*self).n_buildings[building_type]) * cps
+	}
 
-	return cps
+	(*self).cps = total_cps
+
+	return total_cps
 }
