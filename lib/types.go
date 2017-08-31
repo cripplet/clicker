@@ -1,0 +1,20 @@
+package cookie_clicker
+
+type BuildingType int
+type UpgradeID int
+
+const (
+	BUILDING_TYPE_MOUSE BuildingType = iota
+	BUILDING_TYPE_GRANDMA
+
+	BUILDING_TYPE_ENUM_EOF
+)
+
+const (
+	UPGRADE_ID_REINFORCED_INDEX_FINGER UpgradeID = iota
+	UPGRADE_ID_THOUSAND_FINGERS
+	UPGRADE_ID_FORWARDS_FROM_GRANDMA
+	// UPGRADE_ID_PLAIN_COOKIES
+
+	UPGRADE_ID_ENUM_EOF
+)
