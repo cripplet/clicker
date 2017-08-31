@@ -1,104 +1,158 @@
 package cookie_clicker
 
-import (
-	"time"
+type BuildingType int
+type UpgradeID int
+
+const (
+	BUILDING_TYPE_MOUSE BuildingType = iota
+	BUILDING_TYPE_GRANDMA
+
+	BUILDING_TYPE_ENUM_EOF
 )
 
-var BUILDING_TYPES []BuildingType = []BuildingType{
-	MOUSE,
+const (
+	UPGRADE_ID_REINFORCED_INDEX_FINGER UpgradeID = iota
+	UPGRADE_ID_THOUSAND_FINGERS
+	UPGRADE_ID_FORWARDS_FROM_GRANDMA
+	// UPGRADE_ID_PLAIN_COOKIES
+
+	UPGRADE_ID_ENUM_EOF
+)
+
+type UpgradeInterface interface {
+	GetName() string
+	GetCost(g *GameStateStruct) float64
+	GetUnlockStatus(g *GameStateStruct) bool
+
+	GetMultiplicativeCPSContribution(g *GameStateStruct) float64
+	GetAdditiveCPSContribution(g *GameStateStruct) float64
+
+	GetBuildingType() BuildingType
+	GetBuildingMultiplier(g *GameStateStruct) float64
 }
 
-type GameState struct {
-	n_buildings_channels map[BuildingType]chan int
-	n_buildings_done_channels map[BuildingType]chan bool
-	n_buildings_broadcast_channels map[BuildingType] chan int
-	n_buildings_broadcast_done_channels map[BuildingType]chan bool
-	done_channel chan bool
-	n_buildings int
+var building_cps map[BuildingType]float64 = map[BuildingType]float64{
+	BUILDING_TYPE_MOUSE: 0.2,
+	BUILDING_TYPE_GRANDMA: 1,
 }
 
-// TODO(cripplet): Move global upgrade tables, etc. into GameState.
-func MakeGameState() GameState {
-	var g GameState = GameState{
-		done_channel: make(chan bool),
+type GameStateStruct struct {
+	n_cookies float64
+	cps float64  // cached value recalculated for each new upgrade
+	n_buildings map[BuildingType]int
+	upgrade_status map[UpgradeID]bool
+}
+
+func NewGameState() *GameStateStruct {
+	g := GameStateStruct{
+		n_buildings: make(map[BuildingType]int),
+		upgrade_status: make(map[UpgradeID]bool),
 	}
-	for _, building_type := range BUILDING_TYPES {
-		g.n_buildings_channels[building_type] = make(chan int, 1)
-		g.n_buildings_done_channels[building_type] = make(chan bool)
-		g.n_buildings_broadcast_channels[building_type] = make(chan int, 1)
-		g.n_buildings_broadcast_done_channels[building_type] = make(chan bool)
+
+	var i BuildingType
+	for i = 0; i < BUILDING_TYPE_ENUM_EOF; i++ {
+		g.n_buildings[i] = 0
 	}
-	return g
+
+	var j UpgradeID
+	for j = 0; j < UPGRADE_ID_ENUM_EOF; j++ {
+		g.upgrade_status[j] = false
+	}
+
+	return &g
 }
 
-func listenBuildingChannelsLoop(g* GameState, b BuildingType, n int) int {
-	var n_buildings int = n
-	select {
-	case n_buildings = <-g.n_buildings_channels[b]:
-	case <-time.After(EPOCH_TIME):
+func (self *GameStateStruct) CalculateCPS(u map[UpgradeID]UpgradeInterface) float64 {
+	building_cps_scratch := make(map[BuildingType]float64)
+	for k, v := range building_cps {
+		building_cps_scratch[k] = v
 	}
-	return n_buildings
-}
 
-func listenBuildingChannels(g* GameState, b BuildingType) {
-	var n_buildings int
-	for {
-		n_buildings = startBuildingChannelsLoop(g, b, n_buildings)
-		select {
-		case <-g.n_buildings_done_channels[b]:
-			return
-		case <-time.After(CHANNEL_TIMEOUT):
+	for upgrade_id, upgrade := range u {
+		if is_bought, ok := (*self).upgrade_status[upgrade_id]; ok {
+			if is_bought {
+				if upgrade.GetBuildingType() < BUILDING_TYPE_ENUM_EOF {
+					building_cps_scratch[upgrade.GetBuildingType()] *= upgrade.GetBuildingMultiplier(self)
+				}
+			}
 		}
 	}
-}
 
-func startBuildingChannels(g *GameState) {
-	for _, building_type :=  range BUILDING_TYPES {
-		go listenBuildingChannels(b, building_type)
+	var cps float64
+	for building_type, building_cps := range building_cps_scratch {
+		cps += float64((*self).n_buildings[building_type]) * building_cps
 	}
-}
 
-func stopBuildingChannels(g* GameState, b BuildingType) {
-	g.n_buildings_done_channels[b] <- true
-}
-
-func GenerateGameLoop(g *GameState) {
-	var b BuildingType
-	for _, b = range []BuildingType{
-		MOUSE,
-	} {
-		CalculateBuildingUpgrade(b)
-	}
-}
-
-func GenerateGame(g *GameState) {
-	for {
-		GenerateGameLoop(g)
-		select {
-		case <-g.done_channel:
-			return
-		case <-time.After(EPOCH_TIME):
+	for upgrade_id, upgrade := range u {
+		if is_bought, ok := (*self).upgrade_status[upgrade_id]; ok {
+			if is_bought {
+				cps += upgrade.GetAdditiveCPSContribution(self)
+			}
 		}
 	}
-}
 
-func StartGame(g *GameState) {
-	go GenerateGame(g)
-}
-
-func StopGame(g *GameState) {
-	g.done_channel <- true
-}
-
-func CalculateBuildingUpgrade(b BuildingType) {
-	var upgrade_keys []UpgradeID = BUILDING_UPGRADE_TYPE_REVERSE_LOOKUP[b]
-	var upgrades []*BuildingUpgrade = []*BuildingUpgrade{}
-	for _, upgrade_id := range upgrade_keys {
-		upgrades = append(upgrades, BUILDING_UPGRADE_LIST[upgrade_id])
+	for upgrade_id, upgrade := range u {
+		if is_bought, ok := (*self).upgrade_status[upgrade_id]; ok {
+			if is_bought {
+				cps *= upgrade.GetMultiplicativeCPSContribution(self)
+			}
+		}
 	}
-	var aggregate_upgrade_ratio float64 = GetAggregateUpgradeRatio(upgrades)
-	select {
-	case BUILDING_UPGRADE_CHANNEL_LOOKUP[b] <- aggregate_upgrade_ratio:
-	default:
-	}
+
+	(*self).cps = cps
+
+	return cps
 }
+
+/* SimpleUpgrade */
+
+type SimpleBuildingUpgrade struct {
+	UpgradeInterface
+	building_type BuildingType
+	name string
+	cost float64
+	building_multiplier float64
+	minimum_buildings int
+}
+
+func NewSimpleBuildingUpgrade(t BuildingType, n string, c float64, b float64, m int) *SimpleBuildingUpgrade {
+	u := SimpleBuildingUpgrade{
+		building_type: t,
+		name: n,
+		cost: c,
+		building_multiplier: b,
+		minimum_buildings: m,
+	}
+	return &u
+}
+
+func (self *SimpleBuildingUpgrade) GetName() string {
+	return self.name
+}
+
+func (self *SimpleBuildingUpgrade) GetCost(g *GameStateStruct) float64 {
+	return self.cost
+}
+
+func (self *SimpleBuildingUpgrade) GetUnlockStatus(g *GameStateStruct) bool {
+	// TODO(cripplet): Lock
+	return g.n_buildings[self.building_type] >= self.minimum_buildings
+}
+
+func (self *SimpleBuildingUpgrade) GetMultiplicativeCPSContribution(g *GameStateStruct) float64 {
+	return 1
+}
+
+func (self *SimpleBuildingUpgrade) GetAdditiveCPSContribution(g *GameStateStruct) float64 {
+	return 0
+}
+
+func (self *SimpleBuildingUpgrade) GetBuildingType() BuildingType {
+	return (*self).building_type
+}
+
+func (self *SimpleBuildingUpgrade) GetBuildingMultiplier(g *GameStateStruct) float64 {
+	return 2
+}
+
+/* END SimpleUpgrade */
