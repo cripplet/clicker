@@ -15,6 +15,7 @@ type GameStateStruct struct {
 	building_cost         map[BuildingType]BuildingCostFunction
 	upgrade_status        map[UpgradeID]bool
 	upgrades              map[UpgradeID]UpgradeInterface
+	cookies_per_click     float64
 	main_loop_done_signal chan bool
 }
 
@@ -48,11 +49,12 @@ func (self *GameStateStruct) Load() {
 	(*self).loadBuildingCost(BUILDING_COST_LOOKUP)
 	(*self).loadUpgrades(UPGRADES_LOOKUP)
 	(*self).loadBuildingCPS(BUILDING_CPS_LOOKUP)
+	(*self).loadCookiesPerClick(COOKIES_PER_CLICK_LOOKUP)
 }
 
 func (self *GameStateStruct) Start() {
 	(*self).main_loop_done_signal = make(chan bool)
-	go (*self).startBlocking()
+	go (*self).loopDaemon()
 }
 
 func (self *GameStateStruct) Stop() {
@@ -61,6 +63,10 @@ func (self *GameStateStruct) Stop() {
 
 func (self *GameStateStruct) GetNBuildings() map[BuildingType]int {
 	return (*self).n_buildings
+}
+
+func (self *GameStateStruct) GetBuildingCost() map[BuildingType]BuildingCostFunction {
+	return (*self).building_cost
 }
 
 func (self *GameStateStruct) GetUpgrades() map[UpgradeID]UpgradeInterface {
@@ -99,8 +105,12 @@ func (self *GameStateStruct) GetCPS() float64 {
 	return (*self).cps
 }
 
+func (self *GameStateStruct) GetCookiesPerClick() float64 {
+	return (*self).cookies_per_click
+}
+
 func (self *GameStateStruct) Click() { // TODO(cripplet): Add click upgrades.
-	(*self).addCookies(1)
+	(*self).addCookies((*self).cookies_per_click)
 }
 
 /* End public API */
@@ -119,6 +129,10 @@ func (self *GameStateStruct) subtractCookies(n float64) bool {
 		return true
 	}
 	return false
+}
+
+func (self *GameStateStruct) loadCookiesPerClick(c float64) {
+	(*self).cookies_per_click = c
 }
 
 func (self *GameStateStruct) loadBuildingCost(c map[BuildingType]BuildingCostFunction) {
@@ -151,7 +165,7 @@ func (self *GameStateStruct) loadBuildingCPS(b map[BuildingType]float64) {
 	}
 }
 
-func (self *GameStateStruct) calculateCPS() float64 {
+func (self *GameStateStruct) calculateCPS() float64 { // TODO(cripplet): Add cookies_per_click calculations here.
 	building_cps_copy := make(map[BuildingType]float64)
 	for building_type, building_type_cps := range (*self).building_cps {
 		building_cps_copy[building_type] = building_type_cps
@@ -184,7 +198,7 @@ func calculateCookiesSince(start time.Time, end time.Time, cps float64) float64 
 	return cps * float64(end.Sub(start)) / float64(time.Second)
 }
 
-func (self *GameStateStruct) startBlocking() {
+func (self *GameStateStruct) loopDaemon() {
 	t := time.NewTicker(EPOCH_MILLISECONDS)
 	last_updated := time.Now()
 	for {
