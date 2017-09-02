@@ -140,7 +140,7 @@ func TestBuyBuildingFree(t *testing.T) {
 func TestBuyBuildingTooExpensive(t *testing.T) {
 	s := NewGameState()
 	(*s).loadBuildingCost(map[BuildingType]BuildingCostFunction{
-		BUILDING_TYPE_MOUSE: func (current int) float64 { return 1 },
+		BUILDING_TYPE_MOUSE: func(current int) float64 { return 1 },
 	})
 	if (*s).BuyBuilding(BUILDING_TYPE_MOUSE) {
 		t.Error("Expected to not buy building, but bought anyways.")
@@ -154,7 +154,7 @@ func TestBuyBuildingAffordable(t *testing.T) {
 	s := NewGameState()
 	(*s).addCookies(1)
 	(*s).loadBuildingCost(map[BuildingType]BuildingCostFunction{
-		BUILDING_TYPE_MOUSE: func (current int) float64 { return 1 },
+		BUILDING_TYPE_MOUSE: func(current int) float64 { return 1 },
 	})
 	if !(*s).BuyBuilding(BUILDING_TYPE_MOUSE) {
 		t.Error("Expected to buy building, but couldn't.")

@@ -7,17 +7,16 @@ import (
 var EPOCH_MILLISECONDS time.Duration = time.Duration(time.Millisecond * 100)
 
 type GameStateStruct struct {
-	n_cookies      float64
-	cps            float64 // cached value recalculated for each new upgrade
-	n_buildings    map[BuildingType]int
-	building_cps   map[BuildingType]float64
-	building_cost  map[BuildingType]BuildingCostFunction
-	upgrade_status map[UpgradeID]bool
-	upgrades       map[UpgradeID]UpgradeInterface
+	GameAPI
+	n_cookies             float64
+	cps                   float64 // cached value recalculated for each new upgrade
+	n_buildings           map[BuildingType]int
+	building_cps          map[BuildingType]float64
+	building_cost         map[BuildingType]BuildingCostFunction
+	upgrade_status        map[UpgradeID]bool
+	upgrades              map[UpgradeID]UpgradeInterface
 	main_loop_done_signal chan bool
 }
-
-/* Public API */
 
 func NewGameState() *GameStateStruct {
 	g := GameStateStruct{
@@ -42,6 +41,8 @@ func NewGameState() *GameStateStruct {
 
 	return &g
 }
+
+/* Public API */
 
 func (self *GameStateStruct) Load() {
 	(*self).loadBuildingCost(BUILDING_COST_LOOKUP)
@@ -96,6 +97,10 @@ func (self *GameStateStruct) BuyBuilding(building_type BuildingType) bool {
 
 func (self *GameStateStruct) GetCPS() float64 {
 	return (*self).cps
+}
+
+func (self *GameStateStruct) Click() { // TODO(cripplet): Add click upgrades.
+	(*self).addCookies(1)
 }
 
 /* End public API */
@@ -184,14 +189,14 @@ func (self *GameStateStruct) startBlocking() {
 	last_updated := time.Now()
 	for {
 		select {
-			case <-t.C:
-				current_time := time.Now()
-				(*self).addCookies(calculateCookiesSince(last_updated, current_time, (*self).GetCPS()))
-				last_updated = current_time
-				continue
-			case <-(*self).main_loop_done_signal:
-				t.Stop()
-				return
+		case <-t.C:
+			current_time := time.Now()
+			(*self).addCookies(calculateCookiesSince(last_updated, current_time, (*self).GetCPS()))
+			last_updated = current_time
+			continue
+		case <-(*self).main_loop_done_signal:
+			t.Stop()
+			return
 		}
 	}
 }
