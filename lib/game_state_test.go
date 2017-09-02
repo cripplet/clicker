@@ -64,7 +64,9 @@ func TestCalculateCPSSimpleUpgrade(t *testing.T) {
 	u := NewSimpleBuildingUpgrade(
 		BUILDING_TYPE_MOUSE,
 		"New Upgrade",
+		0,
 		2,
+		0,
 	)
 
 	(*s).loadUpgrades(map[UpgradeID]UpgradeInterface{
@@ -89,6 +91,19 @@ func TestBuyNonexistentUpgrade(t *testing.T) {
 
 func TestDoubleBuyUpgrade(t *testing.T) {
 	s := NewGameState()
+
+	u := NewSimpleBuildingUpgrade(
+		BUILDING_TYPE_MOUSE,
+		"New Upgrade",
+		100,
+		2,
+		0,
+	)
+
+	(*s).loadUpgrades(map[UpgradeID]UpgradeInterface{
+		UPGRADE_ID_REINFORCED_INDEX_FINGER: u,
+	})
+
 	(*s).upgrade_status[UPGRADE_ID_REINFORCED_INDEX_FINGER] = true
 
 	if (*s).BuyUpgrade(UPGRADE_ID_REINFORCED_INDEX_FINGER) {
@@ -96,6 +111,46 @@ func TestDoubleBuyUpgrade(t *testing.T) {
 	}
 	if !(*s).upgrade_status[UPGRADE_ID_REINFORCED_INDEX_FINGER] {
 		t.Error("Unbought upgrade.")
+	}
+}
+
+func TestBuyUpgradeTooExpensive(t *testing.T) {
+	s := NewGameState()
+
+	u := NewSimpleBuildingUpgrade(
+		BUILDING_TYPE_MOUSE,
+		"New Upgrade",
+		100,
+		2,
+		0,
+	)
+
+	(*s).loadUpgrades(map[UpgradeID]UpgradeInterface{
+		UPGRADE_ID_REINFORCED_INDEX_FINGER: u,
+	})
+
+	if (*s).BuyUpgrade(UPGRADE_ID_REINFORCED_INDEX_FINGER) {
+		t.Error("Bought too expensive an upgrade.")
+	}
+}
+
+func TestBuyUpgradeLocked(t *testing.T) {
+	s := NewGameState()
+
+	u := NewSimpleBuildingUpgrade(
+		BUILDING_TYPE_MOUSE,
+		"New Upgrade",
+		0,
+		2,
+		1,
+	)
+
+	(*s).loadUpgrades(map[UpgradeID]UpgradeInterface{
+		UPGRADE_ID_REINFORCED_INDEX_FINGER: u,
+	})
+
+	if (*s).BuyUpgrade(UPGRADE_ID_REINFORCED_INDEX_FINGER) {
+		t.Error("Bought a locked upgrade")
 	}
 }
 
@@ -108,7 +163,9 @@ func TestBuyUpgrade(t *testing.T) {
 	u := NewSimpleBuildingUpgrade(
 		BUILDING_TYPE_MOUSE,
 		"New Upgrade",
+		0,
 		2,
+		0,
 	)
 
 	(*s).loadUpgrades(map[UpgradeID]UpgradeInterface{

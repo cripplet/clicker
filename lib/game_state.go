@@ -82,13 +82,14 @@ func (self *GameStateStruct) GetCookies() float64 {
 }
 
 func (self *GameStateStruct) BuyUpgrade(id UpgradeID) bool { // TODO(cripplet): Enforce upgrade cost check.
-	_, present := (*self).upgrades[id]
+	upgrade, present := (*self).upgrades[id]
 	to_buy := present && !(*self).upgrade_status[id]
-	if to_buy {
+	bought := to_buy && upgrade.GetIsUnlocked(self) && (*self).subtractCookies(upgrade.GetCost(self))
+	if bought {
 		(*self).upgrade_status[id] = true
 		(*self).calculateCPS()
 	}
-	return to_buy
+	return bought
 }
 
 func (self *GameStateStruct) BuyBuilding(building_type BuildingType) bool {
