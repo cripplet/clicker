@@ -49,8 +49,9 @@ func TestCalculateCPSNoUpgrades(t *testing.T) {
 	(*s).loadBuildingCPS(BUILDING_CPS_LOOKUP)
 	(*s).n_buildings[BUILDING_TYPE_MOUSE] = 1
 
-	if (*s).calculateCPS() != 0.2 {
-		t.Error(fmt.Sprintf("Expected total CPS %e, got %e", 0.2, (*s).GetCPS()))
+	cps := (*s).calculateCPS()
+	if cps != 0.2 {
+		t.Error(fmt.Sprintf("Expected total CPS %e, got %e", 0.2, cps))
 	}
 }
 
@@ -61,7 +62,7 @@ func TestCalculateCPSSimpleUpgrade(t *testing.T) {
 	(*s).n_buildings[BUILDING_TYPE_MOUSE] = 1
 	(*s).upgrade_status[UPGRADE_ID_REINFORCED_INDEX_FINGER] = true
 
-	u := NewSimpleBuildingUpgrade(
+	u := NewBuildingUpgrade(
 		BUILDING_TYPE_MOUSE,
 		"New Upgrade",
 		0,
@@ -73,8 +74,9 @@ func TestCalculateCPSSimpleUpgrade(t *testing.T) {
 		UPGRADE_ID_REINFORCED_INDEX_FINGER: u,
 	})
 
+	cps := (*s).calculateCPS()
 	if (*s).calculateCPS() != 0.4 {
-		t.Error(fmt.Sprintf("Expected total CPS %e, got %e", 0.4, (*s).GetCPS()))
+		t.Error(fmt.Sprintf("Expected total CPS %e, got %e", 0.4, cps))
 	}
 }
 
@@ -92,7 +94,7 @@ func TestBuyNonexistentUpgrade(t *testing.T) {
 func TestDoubleBuyUpgrade(t *testing.T) {
 	s := NewGameState()
 
-	u := NewSimpleBuildingUpgrade(
+	u := NewBuildingUpgrade(
 		BUILDING_TYPE_MOUSE,
 		"New Upgrade",
 		100,
@@ -117,7 +119,7 @@ func TestDoubleBuyUpgrade(t *testing.T) {
 func TestBuyUpgradeTooExpensive(t *testing.T) {
 	s := NewGameState()
 
-	u := NewSimpleBuildingUpgrade(
+	u := NewBuildingUpgrade(
 		BUILDING_TYPE_MOUSE,
 		"New Upgrade",
 		100,
@@ -137,7 +139,7 @@ func TestBuyUpgradeTooExpensive(t *testing.T) {
 func TestBuyUpgradeLocked(t *testing.T) {
 	s := NewGameState()
 
-	u := NewSimpleBuildingUpgrade(
+	u := NewBuildingUpgrade(
 		BUILDING_TYPE_MOUSE,
 		"New Upgrade",
 		0,
@@ -154,13 +156,13 @@ func TestBuyUpgradeLocked(t *testing.T) {
 	}
 }
 
-func TestBuyUpgrade(t *testing.T) {
+func TestBuyCPSUpgrade(t *testing.T) {
 	s := NewGameState()
 
 	(*s).loadBuildingCPS(BUILDING_CPS_LOOKUP)
 	(*s).n_buildings[BUILDING_TYPE_MOUSE] = 1
 
-	u := NewSimpleBuildingUpgrade(
+	u := NewBuildingUpgrade(
 		BUILDING_TYPE_MOUSE,
 		"New Upgrade",
 		0,
@@ -182,6 +184,34 @@ func TestBuyUpgrade(t *testing.T) {
 
 	if (*s).GetCPS() != 0.4 {
 		t.Error(fmt.Sprintf("Expected CPS %e, got %e", 0.4, (*s).GetCPS()))
+	}
+}
+
+func TestBuyCookiesPerClickUpgrade(t *testing.T) {
+	s := NewGameState()
+
+	(*s).setCookiesPerClick(2)
+
+	u := NewBasicClickUpgrade(
+		"New Upgrade",
+		0,
+		3,
+	)
+
+	(*s).loadUpgrades(map[UpgradeID]UpgradeInterface{
+		UPGRADE_ID_REINFORCED_INDEX_FINGER: u,
+	})
+
+	if !(*s).BuyUpgrade(UPGRADE_ID_REINFORCED_INDEX_FINGER) {
+		t.Error("Could not buy click upgrade.")
+	}
+
+	if !(*s).upgrade_status[UPGRADE_ID_REINFORCED_INDEX_FINGER] {
+		t.Error("BuyUpgrade reported upgrade was bought, but does not show up as bought.")
+	}
+
+	if (*s).GetCookiesPerClick() != 6 {
+		t.Error(fmt.Sprintf("Expected %e cookies per click, got %e", 6, (*s).GetCookiesPerClick()))
 	}
 }
 

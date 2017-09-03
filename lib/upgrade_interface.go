@@ -7,4 +7,6 @@ type UpgradeInterface interface {
 
 	GetBuildingType() BuildingType
 	GetBuildingMultiplier(g *GameStateStruct) float64
+
+	GetClickMultiplier(g *GameStateStruct) float64
 }

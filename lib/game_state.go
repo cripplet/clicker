@@ -49,7 +49,7 @@ func (self *GameStateStruct) Load() {
 	(*self).loadBuildingCost(BUILDING_COST_LOOKUP)
 	(*self).loadUpgrades(UPGRADES_LOOKUP)
 	(*self).loadBuildingCPS(BUILDING_CPS_LOOKUP)
-	(*self).loadCookiesPerClick(COOKIES_PER_CLICK_LOOKUP)
+	(*self).setCookiesPerClick(COOKIES_PER_CLICK_LOOKUP)
 }
 
 func (self *GameStateStruct) Start() {
@@ -87,7 +87,9 @@ func (self *GameStateStruct) BuyUpgrade(id UpgradeID) bool { // TODO(cripplet): 
 	bought := to_buy && upgrade.GetIsUnlocked(self) && (*self).subtractCookies(upgrade.GetCost(self))
 	if bought {
 		(*self).upgrade_status[id] = true
-		(*self).calculateCPS()
+		(*self).setCPS((*self).calculateCPS())
+		(*self).setCookiesPerClick((*self).calculateCookiesPerClick())
+
 	}
 	return bought
 }
@@ -97,7 +99,8 @@ func (self *GameStateStruct) BuyBuilding(building_type BuildingType) bool {
 	bought := (*self).subtractCookies(cost)
 	if bought {
 		(*self).n_buildings[building_type] += 1
-		(*self).calculateCPS()
+		(*self).setCPS((*self).calculateCPS())
+		(*self).setCookiesPerClick((*self).calculateCookiesPerClick())
 	}
 	return bought
 }
@@ -132,7 +135,7 @@ func (self *GameStateStruct) subtractCookies(n float64) bool {
 	return false
 }
 
-func (self *GameStateStruct) loadCookiesPerClick(c float64) {
+func (self *GameStateStruct) setCookiesPerClick(c float64) {
 	(*self).cookies_per_click = c
 }
 
@@ -166,7 +169,19 @@ func (self *GameStateStruct) loadBuildingCPS(b map[BuildingType]float64) {
 	}
 }
 
-func (self *GameStateStruct) calculateCPS() float64 { // TODO(cripplet): Add cookies_per_click calculations here.
+func (self *GameStateStruct) calculateCookiesPerClick() float64 {
+	cookies_per_click_copy := (*self).GetCookiesPerClick()
+
+	for upgrade_id, bought := range (*self).upgrade_status {
+		if bought {
+			cookies_per_click_copy *= (*self).GetUpgrades()[upgrade_id].GetClickMultiplier(self)
+		}
+	}
+
+	return cookies_per_click_copy
+}
+
+func (self *GameStateStruct) calculateCPS() float64 {
 	building_cps_copy := make(map[BuildingType]float64)
 	for building_type, building_type_cps := range (*self).building_cps {
 		building_cps_copy[building_type] = building_type_cps
@@ -189,8 +204,6 @@ func (self *GameStateStruct) calculateCPS() float64 { // TODO(cripplet): Add coo
 	for building_type, cps := range building_cps_copy {
 		total_cps += float64((*self).n_buildings[building_type]) * cps
 	}
-
-	(*self).setCPS(total_cps)
 
 	return total_cps
 }
