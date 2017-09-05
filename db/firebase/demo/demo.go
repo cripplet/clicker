@@ -51,13 +51,13 @@ func main() {
 	}
 
 	// See https://godoc.org/golang.org/x/oauth2/google#JWTConfigFromJSON
-	config, _ := google.JWTConfigFromJSON( // TODO(cripplet): Ensure config.TokenSource refreshes auth token upon expiry.
+	config, _ := google.JWTConfigFromJSON(
 		json_key,
 		"https://www.googleapis.com/auth/firebase.database",
 		"https://www.googleapis.com/auth/userinfo.email",
 	)
 
-	c := config.Client(oauth2.NoContext) // HTTP client with wrapped Auth token headers.
+	c := config.Client(oauth2.NoContext) // HTTP client with wrapped auth token headers.
 
 	s := SomeData{
 		ID:       "some-id",

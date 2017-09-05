@@ -16,7 +16,7 @@ def main() {
                 scope ...string)
         )       
                 
-        c := config.Client(oauth2.NoContext) // HTTP client with wrapped Auth token headers.
+        c := config.Client(oauth2.NoContext) // HTTP client with wrapped auth token headers.
 	c.Do(req *http.Request)
 }
 ```
@@ -25,4 +25,4 @@ It looks like the auth token does not have an expiration date; `config.Expires`
 has a value of 0s, and issuing two authenticated requests more than 3600s apart
 was successful.
 
-At the very least, it looks like config.Client auto-refreshes the auth token.
+At the very least, it looks like `config.Client` auto-refreshes the auth token.
