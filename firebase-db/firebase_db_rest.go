@@ -21,10 +21,10 @@ func do(c *http.Client, req *http.Request) ([]byte, int, error) {
 func paramToURL(p map[string]string) string {
 	s := ""
 	if len(p) > 0 {
-		s += "&"
+		s += "?"
 	}
 	for k, v := range p {
-		s += fmt.Sprintf("%s=%s", k, v)
+		s += fmt.Sprintf("%s=%s&", k, v)
 	}
 	return s
 }
