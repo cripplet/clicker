@@ -11,7 +11,9 @@ import (
 
 func do(c *http.Client, req *http.Request) ([]byte, int, error) {
 	resp, err := c.Do(req)
-	if err != nil { return nil, 0, err }
+	if err != nil {
+		return nil, 0, err
+	}
 
 	defer resp.Body.Close()
 	b, err := ioutil.ReadAll(resp.Body)
@@ -26,7 +28,11 @@ func paramToURL(p map[string]string) string {
 	for k, v := range p {
 		s += fmt.Sprintf("%s=%s&", k, v)
 	}
-	return s
+	var last_char int = 0
+	if len(s) > 0 {
+		last_char = len(s) - 1
+	}
+	return s[:last_char]
 }
 
 func Get(
@@ -37,10 +43,12 @@ func Get(
 
 	path += paramToURL(query_parameters)
 	req, err := http.NewRequest(http.MethodGet, path, nil)
-	if err != nil { return nil, 0, err }
+	if err != nil {
+		return nil, 0, err
+	}
 
 	req.Header.Set("Content-Type", "application/json")
-	if x_firebase_etag == true {
+	if x_firebase_etag {
 		req.Header.Set("X-Firebase-ETag", "true")
 	}
 
@@ -57,10 +65,12 @@ func Put(
 
 	path += paramToURL(query_parameters)
 	req, err := http.NewRequest(http.MethodPut, path, bytes.NewReader(data))
-	if err != nil { return nil, 0, err }
+	if err != nil {
+		return nil, 0, err
+	}
 
 	req.Header.Set("Content-Type", "application/json")
-	if x_firebase_etag == true {
+	if x_firebase_etag {
 		req.Header.Set("X-Firebase-ETag", "true")
 	}
 	if if_match != "" {
@@ -79,10 +89,12 @@ func Post(
 
 	path += paramToURL(query_parameters)
 	req, err := http.NewRequest(http.MethodPost, path, bytes.NewReader(data))
-	if err != nil { return nil, 0, err }
+	if err != nil {
+		return nil, 0, err
+	}
 
 	req.Header.Set("Content-Type", "application/json")
-	if x_firebase_etag == true {
+	if x_firebase_etag {
 		req.Header.Set("X-Firebase-ETag", "true")
 	}
 
@@ -97,7 +109,9 @@ func Patch(
 
 	path += paramToURL(query_parameters)
 	req, err := http.NewRequest(http.MethodPatch, path, bytes.NewReader(data))
-	if err != nil { return nil, 0, err }
+	if err != nil {
+		return nil, 0, err
+	}
 
 	req.Header.Set("Content-Type", "application/json")
 
@@ -112,10 +126,12 @@ func Delete(
 	query_parameters map[string]string) ([]byte, int, error) {
 
 	path += paramToURL(query_parameters)
-	req, err := http.NewRequest(http.MethodPatch, path, nil)
-	if err != nil { return nil, 0, err }
+	req, err := http.NewRequest(http.MethodDelete, path, nil)
+	if err != nil {
+		return nil, 0, err
+	}
 
-	if x_firebase_etag == true {
+	if x_firebase_etag {
 		req.Header.Set("X-Firebase-ETag", "true")
 	}
 	if if_match != "" {
