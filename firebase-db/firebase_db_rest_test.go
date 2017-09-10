@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"reflect"
 	"testing"
 )
 
@@ -55,6 +56,7 @@ func TestPut(t *testing.T) {
 		false,
 		"",
 		map[string]string{},
+		nil,
 	)
 
 	if err != nil {
@@ -67,6 +69,38 @@ func TestPut(t *testing.T) {
 
 	if !bytes.Equal(b, expected) {
 		t.Errorf("Returned PUT data is not expected: %s != %s", string(b), string(expected))
+	}
+}
+
+func TestReturnJSON(t *testing.T) {
+	type TestData struct {
+		Name string `json:"name"`
+		ID   string `json:"id"`
+	}
+
+	ResetEnvironment(t)
+
+	c, _ := NewGoogleClient(credentials)
+
+	expected := TestData{
+		Name: "Michael Scott",
+		ID:   "dunder-mifflin-2005",
+	}
+	data, _ := json.Marshal(expected)
+	actual := TestData{}
+
+	Put(
+		c,
+		fmt.Sprintf("%s/test_return_json.json", project_root),
+		data,
+		false,
+		"",
+		map[string]string{},
+		&actual,
+	)
+
+	if !reflect.DeepEqual(expected, actual) {
+		t.Errorf("Expected return did not match actual returned JSON: %v != %v", expected, actual)
 	}
 }
 
@@ -83,6 +117,7 @@ func TestGet(t *testing.T) {
 		false,
 		"",
 		map[string]string{},
+		nil,
 	)
 
 	b, status_code, err := Get(
@@ -90,6 +125,7 @@ func TestGet(t *testing.T) {
 		fmt.Sprintf("%s/test_get.json", project_root),
 		false,
 		map[string]string{},
+		nil,
 	)
 
 	if err != nil {
@@ -121,6 +157,7 @@ func TestPost(t *testing.T) {
 		expected,
 		false,
 		map[string]string{},
+		nil,
 	)
 
 	if err != nil {
@@ -139,6 +176,7 @@ func TestPost(t *testing.T) {
 		fmt.Sprintf("%s/test_post.json", project_root),
 		false,
 		map[string]string{},
+		nil,
 	)
 
 	resp := map[string]string{}
@@ -178,6 +216,7 @@ func TestPatch(t *testing.T) {
 		false,
 		"",
 		map[string]string{},
+		nil,
 	)
 
 	data, _ := json.Marshal(PatchDataStruct{
@@ -189,6 +228,7 @@ func TestPatch(t *testing.T) {
 		fmt.Sprintf("%s/test_patch.json", project_root),
 		data,
 		map[string]string{},
+		nil,
 	)
 
 	if err != nil {
@@ -208,6 +248,7 @@ func TestPatch(t *testing.T) {
 		fmt.Sprintf("%s/test_patch.json", project_root),
 		false,
 		map[string]string{},
+		nil,
 	)
 
 	if !bytes.Equal(b, expected) {
@@ -228,6 +269,7 @@ func TestDelete(t *testing.T) {
 		false,
 		"",
 		map[string]string{},
+		nil,
 	)
 
 	_, status_code, err := Delete(
@@ -251,6 +293,7 @@ func TestDelete(t *testing.T) {
 		fmt.Sprintf("%s/test_delete.json", project_root),
 		false,
 		map[string]string{},
+		nil,
 	)
 
 	expected, _ := json.Marshal(nil)

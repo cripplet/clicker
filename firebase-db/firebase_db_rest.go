@@ -2,6 +2,7 @@ package firebase_db
 
 import (
 	"bytes"
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 )
@@ -23,7 +24,8 @@ func Get(
 	c *http.Client,
 	path string,
 	x_firebase_etag bool,
-	query_parameters map[string]string) ([]byte, int, error) {
+	query_parameters map[string]string,
+	v interface{}) ([]byte, int, error) {
 
 	path += paramToURL(query_parameters)
 	req, err := http.NewRequest(http.MethodGet, path, nil)
@@ -36,7 +38,12 @@ func Get(
 		req.Header.Set("X-Firebase-ETag", "true")
 	}
 
-	return do(c, req)
+	b, status_code, err := do(c, req)
+	if err == nil && v != nil {
+		err = json.Unmarshal(b, v)
+	}
+
+	return b, status_code, err
 }
 
 func Put(
@@ -45,7 +52,8 @@ func Put(
 	data []byte,
 	x_firebase_etag bool,
 	if_match string,
-	query_parameters map[string]string) ([]byte, int, error) {
+	query_parameters map[string]string,
+	v interface{}) ([]byte, int, error) {
 
 	path += paramToURL(query_parameters)
 	req, err := http.NewRequest(http.MethodPut, path, bytes.NewReader(data))
@@ -61,7 +69,12 @@ func Put(
 		req.Header.Set("if-match", if_match)
 	}
 
-	return do(c, req)
+	b, status_code, err := do(c, req)
+	if err == nil && v != nil {
+		err = json.Unmarshal(b, v)
+	}
+
+	return b, status_code, err
 }
 
 func Post(
@@ -69,7 +82,8 @@ func Post(
 	path string,
 	data []byte,
 	x_firebase_etag bool,
-	query_parameters map[string]string) ([]byte, int, error) {
+	query_parameters map[string]string,
+	v interface{}) ([]byte, int, error) {
 
 	path += paramToURL(query_parameters)
 	req, err := http.NewRequest(http.MethodPost, path, bytes.NewReader(data))
@@ -82,14 +96,20 @@ func Post(
 		req.Header.Set("X-Firebase-ETag", "true")
 	}
 
-	return do(c, req)
+	b, status_code, err := do(c, req)
+	if err == nil && v != nil {
+		err = json.Unmarshal(b, v)
+	}
+
+	return b, status_code, err
 }
 
 func Patch(
 	c *http.Client,
 	path string,
 	data []byte,
-	query_parameters map[string]string) ([]byte, int, error) {
+	query_parameters map[string]string,
+	v interface{}) ([]byte, int, error) {
 
 	path += paramToURL(query_parameters)
 	req, err := http.NewRequest(http.MethodPatch, path, bytes.NewReader(data))
@@ -99,7 +119,12 @@ func Patch(
 
 	req.Header.Set("Content-Type", "application/json")
 
-	return do(c, req)
+	b, status_code, err := do(c, req)
+	if err == nil && v != nil {
+		err = json.Unmarshal(b, v)
+	}
+
+	return b, status_code, err
 }
 
 func Delete(
