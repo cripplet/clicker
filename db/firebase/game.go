@@ -14,7 +14,7 @@ type FBGameState struct {
 }
 
 type FBUser struct {
-	ID     string `json:"id"`
+	ID string `json:"id"`
 	GameID string `json:"game_id"`
 }
 
@@ -33,6 +33,53 @@ func randomString(n int) string {
 		b[i] = r[rand.Intn(len(r))]
 	}
 	return string(b)
+}
+
+func CreateGameState() (FBGameState, FBUser, error) {
+	g := FBGameState{}
+	u := FBUser{}
+
+	g.ID = randomString(32)
+	u.ID = randomString(32)
+	u.GameID = g.ID
+
+	g_json, err := json.Marshal(g)
+	if err != nil {
+		return FBGameState{}, FBUser{}, err
+	}
+
+	u_json, err := json.Marshal(u)
+	if err != nil {
+		return FBGameState{}, FBUser{}, err
+	}
+
+	_, _, err = firebase_db.Put(
+		cc_fb_config.CC_FIREBASE_CONFIG.Client,
+		fmt.Sprintf("%s/game/%s.json", cc_fb_config.CC_FIREBASE_CONFIG.ProjectPath, g.ID),
+		g_json,
+		false,
+		"",
+		map[string]string{},
+		&g,
+	)
+	if err != nil {
+		return FBGameState{}, FBUser{}, err
+	}
+
+	_, _, err = firebase_db.Put(
+		cc_fb_config.CC_FIREBASE_CONFIG.Client,
+		fmt.Sprintf("%s/user/%s.json", cc_fb_config.CC_FIREBASE_CONFIG.ProjectPath, u.ID),
+		u_json,
+		false,
+		"",
+		map[string]string{},
+		&u,
+	)
+	if err != nil {
+		return FBGameState{}, FBUser{}, err
+	}
+
+	return g, u, nil
 }
 
 func LoadGameState(id string, token string) (FBGameState, FBUser, error) {
@@ -81,6 +128,7 @@ func LoadGameState(id string, token string) (FBGameState, FBUser, error) {
 	if err != nil {
 		return FBGameState{}, FBUser{}, err
 	}
+
 
 	_, _, err = firebase_db.Put(
 		cc_fb_config.CC_FIREBASE_CONFIG.Client,

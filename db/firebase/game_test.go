@@ -24,6 +24,15 @@ func ResetEnvironment(t *testing.T) {
 	}
 }
 
+func TestLoadGame(t *testing.T) {
+	ResetEnvironment(t)
+	g, u, _ := CreateGameState()
+
+	if g.ID != u.GameID {
+		t.Errorf("Game ID does not match user token: %s != %s", g.ID, u.GameID)
+	}
+}
+
 func TestLoadGameStateBadAuthorization(t *testing.T) {
 	ResetEnvironment(t)
 	id := "some-id"
