@@ -5,6 +5,7 @@ import (
 	"github.com/cripplet/clicker/db/firebase/config"
 	"github.com/cripplet/clicker/firebase-db"
 	"net/http"
+	"reflect"
 	"testing"
 )
 
@@ -26,10 +27,18 @@ func ResetEnvironment(t *testing.T) {
 
 func TestLoadGame(t *testing.T) {
 	ResetEnvironment(t)
-	g, u, _ := CreateGameState()
+	g, u, _ := SaveGameState(FBGameState{}, FBUser{}, true)
 
 	if g.ID != u.GameID {
 		t.Errorf("Game ID does not match user token: %s != %s", g.ID, u.GameID)
+	}
+
+	g, u, err := LoadGameState(g.ID, u.ID)
+	if err != nil {
+		t.Errorf("Unexpected error when loading game state: %v", err)
+	}
+	if reflect.DeepEqual(g, FBGameState{}) || reflect.DeepEqual(u, FBUser{}) {
+		t.Errorf("Empty game state returned: %v, %v", g, u)
 	}
 }
 

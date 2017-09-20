@@ -14,7 +14,7 @@ type FBGameState struct {
 }
 
 type FBUser struct {
-	ID string `json:"id"`
+	ID     string `json:"id"`
 	GameID string `json:"game_id"`
 }
 
@@ -35,13 +35,12 @@ func randomString(n int) string {
 	return string(b)
 }
 
-func CreateGameState() (FBGameState, FBUser, error) {
-	g := FBGameState{}
-	u := FBUser{}
-
-	g.ID = randomString(32)
-	u.ID = randomString(32)
-	u.GameID = g.ID
+func SaveGameState(g FBGameState, u FBUser, new_game bool) (FBGameState, FBUser, error) {
+	if new_game {
+		g.ID = randomString(32)
+		u.ID = randomString(32)
+		u.GameID = g.ID
+	}
 
 	g_json, err := json.Marshal(g)
 	if err != nil {
@@ -79,7 +78,7 @@ func CreateGameState() (FBGameState, FBUser, error) {
 		return FBGameState{}, FBUser{}, err
 	}
 
-	return g, u, nil
+	return g, u, err
 }
 
 func LoadGameState(id string, token string) (FBGameState, FBUser, error) {
@@ -114,47 +113,5 @@ func LoadGameState(id string, token string) (FBGameState, FBUser, error) {
 
 	}
 
-	ng := FBGameState(g)
-	ng.ID = randomString(32)
-	ng_json, err := json.Marshal(ng)
-	if err != nil {
-		return FBGameState{}, FBUser{}, err
-	}
-
-	nu := FBUser(u)
-	nu.ID = randomString(32)
-	nu.GameID = ng.ID
-	nu_json, err := json.Marshal(nu)
-	if err != nil {
-		return FBGameState{}, FBUser{}, err
-	}
-
-
-	_, _, err = firebase_db.Put(
-		cc_fb_config.CC_FIREBASE_CONFIG.Client,
-		fmt.Sprintf("%s/game/%s.json", cc_fb_config.CC_FIREBASE_CONFIG.ProjectPath, ng.ID),
-		ng_json,
-		false,
-		"",
-		map[string]string{},
-		&ng,
-	)
-	if err != nil {
-		return FBGameState{}, FBUser{}, err
-	}
-
-	_, _, err = firebase_db.Put(
-		cc_fb_config.CC_FIREBASE_CONFIG.Client,
-		fmt.Sprintf("%s/user/%s.json", cc_fb_config.CC_FIREBASE_CONFIG.ProjectPath, nu.ID),
-		nu_json,
-		false,
-		"",
-		map[string]string{},
-		&nu,
-	)
-	if err != nil {
-		return FBGameState{}, FBUser{}, err
-	}
-
-	return ng, nu, err
+	return SaveGameState(FBGameState(g), FBUser(u), true)
 }
