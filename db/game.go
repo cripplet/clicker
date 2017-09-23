@@ -30,7 +30,7 @@ func NewGameState() (FBGameState, error) {
 	g := FBGameState{
 		Exist: true,
 	}
-	g_json, err := json.Marshal(&g)
+	gJSON, err := json.Marshal(&g)
 	if err != nil {
 		return FBGameState{}, err
 	}
@@ -40,7 +40,7 @@ func NewGameState() (FBGameState, error) {
 	_, _, err = firebase_db.Post(
 		cc_fb_config.CC_FIREBASE_CONFIG.Client,
 		fmt.Sprintf("%s/game/%s.json", cc_fb_config.CC_FIREBASE_CONFIG.ProjectPath, g.ID),
-		g_json,
+		gJSON,
 		false,
 		map[string]string{},
 		&p,
