@@ -5,7 +5,6 @@ import (
 	"github.com/cripplet/clicker/db/config"
 	"github.com/cripplet/clicker/firebase-db"
 	"net/http"
-	"reflect"
 	"testing"
 )
 
@@ -25,16 +24,42 @@ func ResetEnvironment(t *testing.T) {
 	}
 }
 
-func TestLoadGame(t *testing.T) {
+func TestNewGame(t *testing.T) {
 	ResetEnvironment(t)
-	g, _ := SaveGameState(FBGameState{}, true)
-
-	g, err := LoadGameState(g.ID)
+	g, err := NewGameState()
 	if err != nil {
 		t.Errorf("Unexpected error when loading game state: %v", err)
 	}
-	if reflect.DeepEqual(g, FBGameState{}) {
-		t.Errorf("Empty game state returned: %v", g)
+
+	if g.ID == "" {
+		t.Errorf("Game ID was not set")
+	}
+}
+
+func TestLoadGame(t *testing.T) {
+	ResetEnvironment(t)
+	g, _ := NewGameState()
+
+	h, err := LoadGameState(g.ID)
+	if err != nil {
+		t.Errorf("Unexpected error when resetting database: %v", err)
+	}
+
+	if h.ID != g.ID {
+		t.Errorf("Loaded game ID does not match: %s != %s", h.ID, g.ID)
+	}
+}
+
+func TestLoadNonexistentGame(t *testing.T) {
+	ResetEnvironment(t)
+	g, err := LoadGameState("some-id")
+
+	if err != nil {
+		t.Errorf("Unexpected error when resetting database: %v", err)
+	}
+
+	if g.ID != "" {
+		t.Errorf("Found game with given ID: %s", g.ID)
 	}
 }
 

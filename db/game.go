@@ -10,7 +10,7 @@ import (
 
 type FBGameState struct {
 	ID       string `json:"id"`
-	Upgrades string `json:"upgrades"`
+	Exist    bool   `json:"exist"`
 }
 
 func randomString(n int) string {
@@ -22,35 +22,43 @@ func randomString(n int) string {
 	return string(b)
 }
 
-func SaveGameState(g FBGameState, new_game bool) (FBGameState, error) {
-	if new_game {
-		g.ID = randomString(32)
-	}
+type PostID struct {
+	Name string `json:"name"`
+}
 
-	g_json, err := json.Marshal(g)
+func NewGameState() (FBGameState, error) {
+	g := FBGameState{
+		Exist: true,
+	}
+	g_json, err := json.Marshal(&g)
 	if err != nil {
 		return FBGameState{}, err
 	}
 
-	_, _, err = firebase_db.Put(
+	p := PostID{}
+
+	_, _, err = firebase_db.Post(
 		cc_fb_config.CC_FIREBASE_CONFIG.Client,
 		fmt.Sprintf("%s/game/%s.json", cc_fb_config.CC_FIREBASE_CONFIG.ProjectPath, g.ID),
 		g_json,
 		false,
-		"",
 		map[string]string{},
-		&g,
+		&p,
 	)
 	if err != nil {
 		return FBGameState{}, err
 	}
 
-	return g, err
+	g.ID = p.Name
+	return g, nil
 }
 
 func LoadGameState(id string) (FBGameState, error) {
-	g := FBGameState{}
+	if id == "" {
+		return NewGameState()
+	}
 
+	g := FBGameState{}
 	_, _, err := firebase_db.Get(
 		cc_fb_config.CC_FIREBASE_CONFIG.Client,
 		fmt.Sprintf("%s/game/%s.json", cc_fb_config.CC_FIREBASE_CONFIG.ProjectPath, id),
@@ -61,6 +69,8 @@ func LoadGameState(id string) (FBGameState, error) {
 	if err != nil {
 		return FBGameState{}, err
 	}
-
-	return SaveGameState(FBGameState(g), true)
+	if g.Exist {
+		g.ID = id
+	}
+	return g, nil
 }
