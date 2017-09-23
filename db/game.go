@@ -9,8 +9,8 @@ import (
 )
 
 type FBGameState struct {
-	ID       string `json:"id"`
-	Exist    bool   `json:"exist"`
+	ID    string `json:"id"`
+	Exist bool   `json:"exist"`
 }
 
 func randomString(n int) string {

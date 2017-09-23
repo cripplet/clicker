@@ -28,9 +28,9 @@ type GameStateStruct struct {
 func NewGameState() *GameStateStruct {
 	g := GameStateStruct{
 		nBuildings:     make(map[BuildingType]int),
+		upgradeStatus:  make(map[UpgradeID]bool),
 		buildingCPSRef: make(map[BuildingType]float64),
 		buildingCost:   make(map[BuildingType]BuildingCostFunction),
-		upgradeStatus:  make(map[UpgradeID]bool),
 		upgrades:       make(map[UpgradeID]UpgradeInterface),
 	}
 
@@ -57,6 +57,9 @@ func (self *GameStateStruct) Load(d GameStateData) {
 	self.loadUpgrades(UPGRADES_LOOKUP)
 	self.loadBuildingCPSRef(BUILDING_CPS_LOOKUP)
 	self.loadCookiesPerClickRef(COOKIES_PER_CLICK_LOOKUP)
+
+	self.setCookiesPerClick(self.calculateCookiesPerClick())
+	self.setCPS(self.calculateCPS())
 }
 
 func (self *GameStateStruct) GetNBuildings() map[BuildingType]int {
@@ -143,8 +146,13 @@ func (self *GameStateStruct) setCookiesPerClick(c float64) {
 
 func (self *GameStateStruct) loadData(d GameStateData) {
 	self.nCookies = d.NCookies
-	self.nBuildings = d.NBuildings
-	self.upgradeStatus = d.UpgradeStatus
+
+	for buildingType, _ := range self.nBuildings {
+		self.nBuildings[buildingType] = d.NBuildings[buildingType]
+	}
+	for upgradeType, _ := range self.upgradeStatus {
+		self.upgradeStatus[upgradeType] = d.UpgradeStatus[upgradeType]
+	}
 }
 
 func (self *GameStateStruct) loadBuildingCost(c map[BuildingType]BuildingCostFunction) {
@@ -183,7 +191,6 @@ func (self *GameStateStruct) loadBuildingCPSRef(b map[BuildingType]float64) {
 
 func (self *GameStateStruct) calculateCookiesPerClick() float64 {
 	cookiesPerClickCopy := self.cookiesPerClickRef
-
 	for upgradeID, bought := range self.upgradeStatus {
 		if bought {
 			cookiesPerClickCopy *= self.GetUpgrades()[upgradeID].GetClickMultiplier(self)
