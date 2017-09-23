@@ -256,6 +256,13 @@ func TestBuyBuildingAffordable(t *testing.T) {
 	}
 }
 
+func TestNewGameStateData(t *testing.T) {
+	d := NewGameStateData()
+	if d.Version != GAME_STATE_VERSION {
+		t.Errorf("Expected %s version, got %s", GAME_STATE_VERSION, d.Version)
+	}
+}
+
 func TestGameStateLoad(t *testing.T) {
 	s := NewGameState()
 	s.Load(GameStateData{

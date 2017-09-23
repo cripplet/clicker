@@ -30,6 +30,15 @@ type GameStateStruct struct {
 	upgrades           map[UpgradeID]UpgradeInterface
 }
 
+func NewGameStateData() *GameStateData {
+	d := GameStateData{
+		Version: GAME_STATE_VERSION,
+		NBuildings: make(map[BuildingType]int),
+		UpgradeStatus: make(map[UpgradeID]bool),
+	}
+	return &d
+}
+
 func NewGameState() *GameStateStruct {
 	g := GameStateStruct{
 		nBuildings:     make(map[BuildingType]int),

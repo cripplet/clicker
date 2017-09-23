@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"github.com/cripplet/clicker/db/config"
 	"github.com/cripplet/clicker/firebase-db"
+	"github.com/cripplet/clicker/lib"
 	"math/rand"
 )
 
 type FBGameState struct {
-	ID    string `json:"id"`
-	Exist bool   `json:"exist"`
+	ID       string                       `json:"-"`
+	Exist    bool                         `json:"exist"`
+	GameData cookie_clicker.GameStateData `json:"data"`
 }
 
 func randomString(n int) string {
@@ -27,8 +29,10 @@ type PostID struct {
 }
 
 func NewGameState() (FBGameState, error) {
+	d := cookie_clicker.NewGameStateData()
 	g := FBGameState{
-		Exist: true,
+		Exist:    true,
+		GameData: *d,
 	}
 	gJSON, err := json.Marshal(&g)
 	if err != nil {
