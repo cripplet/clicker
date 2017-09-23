@@ -1,15 +1,13 @@
 package cc_websocket_server
 
 import (
-	"encoding/json"
-	"fmt"
 	"github.com/gorilla/websocket"
 	"net/http"
 	"strings"
 	"testing"
 )
 
-func TestClient(t *testing.T) {
+func TestStartClient(t *testing.T) {
 	ts := NewMockServer(t, 8080, WebsocketHandler)
 
 	ts.Start()
@@ -28,9 +26,8 @@ func TestClient(t *testing.T) {
 	request := CommandRequest{}
 	response := CommandResponse{}
 	c.WriteJSON(&request)
-
 	c.ReadJSON(&response)
-
-	r_bytes, _ := json.Marshal(&response)
-	fmt.Printf("%s", string(r_bytes))
+	if response.Error.ErrorCode != ERROR_TYPE_INVALID_REQUEST {
+		t.Errorf("Unexpected response status: %d != %d", response.Error.ErrorCode != ERROR_TYPE_INVALID_REQUEST)
+	}
 }

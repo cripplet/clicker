@@ -57,6 +57,53 @@ type CommandRequest struct {
 	Method MethodType `json:"method"`
 }
 
+type CommandFunction func(*Client, *CommandRequest, *CommandResponse)
+type SupportedCommand struct {
+	object ObjectType
+	hasID  bool
+	method MethodType
+}
+
+func NullFunction(c *Client, req *CommandRequest, resp *CommandResponse) {}
+
+var COMMAND_DISPATCH_TABLE map[SupportedCommand]CommandFunction = map[SupportedCommand]CommandFunction{
+	SupportedCommand{
+		object: OBJECT_TYPE_GAME,
+		hasID:  false,
+		method: METHOD_TYPE_POST,
+	}: NullFunction,
+	SupportedCommand{
+		object: OBJECT_TYPE_GAME,
+		hasID:  true,
+		method: METHOD_TYPE_DELETE,
+	}: NullFunction,
+	SupportedCommand{
+		object: OBJECT_TYPE_UPGRADE,
+		hasID:  false,
+		method: METHOD_TYPE_LIST,
+	}: NullFunction,
+	SupportedCommand{
+		object: OBJECT_TYPE_UPGRADE,
+		hasID:  true,
+		method: METHOD_TYPE_POST,
+	}: NullFunction,
+	SupportedCommand{
+		object: OBJECT_TYPE_BUILDING,
+		hasID:  false,
+		method: METHOD_TYPE_LIST,
+	}: NullFunction,
+	SupportedCommand{
+		object: OBJECT_TYPE_BUILDING,
+		hasID:  true,
+		method: METHOD_TYPE_POST,
+	}: NullFunction,
+	SupportedCommand{
+		object: OBJECT_TYPE_COOKIE,
+		hasID:  false,
+		method: METHOD_TYPE_POST,
+	}: NullFunction,
+}
+
 func (self *CommandRequest) validate(command_error *CommandError) {
 	_, valid_object_type := OBJECT_TYPE_LOOKUP[self.Object]
 	if !valid_object_type {
@@ -70,29 +117,12 @@ func (self *CommandRequest) validate(command_error *CommandError) {
 		command_error.ErrorMessage = fmt.Sprintf("Unsupported command type '%s'", self.Method)
 	}
 
-	var success bool
-	switch self.Object {
-	case OBJECT_TYPE_GAME:
-		if (self.Method == METHOD_TYPE_POST && self.ID == "") || (self.Method == METHOD_TYPE_DELETE && self.ID != "") {
-			success = true
-		}
-		break
-	case OBJECT_TYPE_UPGRADE:
-	case OBJECT_TYPE_BUILDING:
-		if (self.Method == METHOD_TYPE_LIST && self.ID == "") || (self.Method == METHOD_TYPE_POST && self.ID != "") {
-			success = true
-		}
-		break
-	case OBJECT_TYPE_COOKIE:
-		if self.Method == METHOD_TYPE_POST && self.ID == "" {
-			success = true
-		}
-		break
-	default:
-		success = false
-	}
-
-	if !success {
+	_, supported_method_call := COMMAND_DISPATCH_TABLE[SupportedCommand{
+		object: self.Object,
+		hasID:  self.ID != "",
+		method: self.Method,
+	}]
+	if !supported_method_call {
 		command_error.ErrorCode = ERROR_TYPE_INVALID_REQUEST
 		command_error.ErrorMessage = fmt.Sprintf("Unsupported command type '%s' for object '%s' and ID '%s'", self.Method, self.Object, self.ID)
 	}

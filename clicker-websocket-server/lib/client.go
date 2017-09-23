@@ -21,6 +21,14 @@ type Client struct {
 
 func (self *Client) execute(request *CommandRequest, response *CommandResponse) {
 	request.validate(&(response.Error))
+	if response.Error.ErrorCode != ERROR_TYPE_SUCCESS {
+		return
+	}
+	COMMAND_DISPATCH_TABLE[SupportedCommand{
+		object: request.Object,
+		hasID:  request.ID != "",
+		method: request.Method,
+	}](self, request, response)
 }
 
 func (self *Client) run() {
