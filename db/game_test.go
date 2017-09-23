@@ -2,7 +2,7 @@ package cc_fb
 
 import (
 	"fmt"
-	"github.com/cripplet/clicker/db/firebase/config"
+	"github.com/cripplet/clicker/db/config"
 	"github.com/cripplet/clicker/firebase-db"
 	"net/http"
 	"reflect"
@@ -27,27 +27,14 @@ func ResetEnvironment(t *testing.T) {
 
 func TestLoadGame(t *testing.T) {
 	ResetEnvironment(t)
-	g, u, _ := SaveGameState(FBGameState{}, FBUser{}, true)
+	g, _ := SaveGameState(FBGameState{}, true)
 
-	if g.ID != u.GameID {
-		t.Errorf("Game ID does not match user token: %s != %s", g.ID, u.GameID)
-	}
-
-	g, u, err := LoadGameState(g.ID, u.ID)
+	g, err := LoadGameState(g.ID)
 	if err != nil {
 		t.Errorf("Unexpected error when loading game state: %v", err)
 	}
-	if reflect.DeepEqual(g, FBGameState{}) || reflect.DeepEqual(u, FBUser{}) {
-		t.Errorf("Empty game state returned: %v, %v", g, u)
-	}
-}
-
-func TestLoadGameStateBadAuthorization(t *testing.T) {
-	ResetEnvironment(t)
-	id := "some-id"
-	_, _, err := LoadGameState(id, "some-incorrect-token")
-	if err == nil {
-		t.Error("No error was returned when expecting one.")
+	if reflect.DeepEqual(g, FBGameState{}) {
+		t.Errorf("Empty game state returned: %v", g)
 	}
 }
 
