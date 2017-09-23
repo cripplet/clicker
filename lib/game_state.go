@@ -4,40 +4,46 @@ import (
 	"time"
 )
 
-var EPOCH_MILLISECONDS time.Duration = time.Duration(time.Millisecond * 100)
+type GameStateData struct {
+	NCookies      float64              `json:"n_cookies"`
+	NBuildings    map[BuildingType]int `json:"n_buildings"`
+	UpgradeStatus map[UpgradeID]bool   `json:"upgrade_status"`
+}
 
 type GameStateStruct struct {
-	GameAPI
-	n_cookies             float64
-	cps                   float64 // cached value recalculated for each new upgrade
-	n_buildings           map[BuildingType]int
-	building_cps          map[BuildingType]float64
-	building_cost         map[BuildingType]BuildingCostFunction
-	upgrade_status        map[UpgradeID]bool
-	upgrades              map[UpgradeID]UpgradeInterface
-	cookies_per_click     float64
-	main_loop_done_signal chan bool
+	/* Imported Fields */
+	nCookies      float64
+	nBuildings    map[BuildingType]int
+	upgradeStatus map[UpgradeID]bool
+	/* Calculated Cache Fields */
+	cookiesPerClick float64
+	cps             float64
+	/* Immutable Fields */
+	buildingCPSRef     map[BuildingType]float64
+	cookiesPerClickRef float64
+	buildingCost       map[BuildingType]BuildingCostFunction
+	upgrades           map[UpgradeID]UpgradeInterface
 }
 
 func NewGameState() *GameStateStruct {
 	g := GameStateStruct{
-		n_buildings:    make(map[BuildingType]int),
-		building_cps:   make(map[BuildingType]float64),
-		building_cost:  make(map[BuildingType]BuildingCostFunction),
-		upgrade_status: make(map[UpgradeID]bool),
+		nBuildings:     make(map[BuildingType]int),
+		buildingCPSRef: make(map[BuildingType]float64),
+		buildingCost:   make(map[BuildingType]BuildingCostFunction),
+		upgradeStatus:  make(map[UpgradeID]bool),
 		upgrades:       make(map[UpgradeID]UpgradeInterface),
 	}
 
 	var i BuildingType
 	for i = 0; i < BUILDING_TYPE_ENUM_EOF; i++ {
-		g.n_buildings[i] = 0
-		g.building_cps[i] = 0
-		g.building_cost[i] = func(current int) float64 { return 0 }
+		g.nBuildings[i] = 0
+		g.buildingCPSRef[i] = 0
+		g.buildingCost[i] = func(current int) float64 { return 0 }
 	}
 
 	var j UpgradeID
 	for j = 0; j < UPGRADE_ID_ENUM_EOF; j++ {
-		g.upgrade_status[j] = false
+		g.upgradeStatus[j] = false
 	}
 
 	return &g
@@ -45,186 +51,171 @@ func NewGameState() *GameStateStruct {
 
 /* Public API */
 
-func (self *GameStateStruct) Load() {
-	(*self).loadBuildingCost(BUILDING_COST_LOOKUP)
-	(*self).loadUpgrades(UPGRADES_LOOKUP)
-	(*self).loadBuildingCPS(BUILDING_CPS_LOOKUP)
-	(*self).setCookiesPerClick(COOKIES_PER_CLICK_LOOKUP)
-}
-
-func (self *GameStateStruct) Start() {
-	(*self).main_loop_done_signal = make(chan bool)
-	go (*self).loopDaemon()
-}
-
-func (self *GameStateStruct) Stop() {
-	(*self).main_loop_done_signal <- true
+func (self *GameStateStruct) Load(d GameStateData) {
+	self.loadData(d)
+	self.loadBuildingCost(BUILDING_COST_LOOKUP)
+	self.loadUpgrades(UPGRADES_LOOKUP)
+	self.loadBuildingCPSRef(BUILDING_CPS_LOOKUP)
+	self.loadCookiesPerClickRef(COOKIES_PER_CLICK_LOOKUP)
 }
 
 func (self *GameStateStruct) GetNBuildings() map[BuildingType]int {
-	return (*self).n_buildings
+	return self.nBuildings
 }
 
 func (self *GameStateStruct) GetBuildingCost() map[BuildingType]BuildingCostFunction {
-	return (*self).building_cost
+	return self.buildingCost
 }
 
 func (self *GameStateStruct) GetUpgrades() map[UpgradeID]UpgradeInterface {
-	return (*self).upgrades
+	return self.upgrades
 }
 
 func (self *GameStateStruct) GetUpgradeStatus() map[UpgradeID]bool {
-	return (*self).upgrade_status
+	return self.upgradeStatus
 }
 
 func (self *GameStateStruct) GetCookies() float64 {
-	return (*self).n_cookies
+	return self.nCookies
 }
 
 func (self *GameStateStruct) BuyUpgrade(id UpgradeID) bool { // TODO(cripplet): Enforce upgrade cost check.
-	upgrade, present := (*self).upgrades[id]
-	to_buy := present && !(*self).upgrade_status[id]
-	bought := to_buy && upgrade.GetIsUnlocked(self) && (*self).subtractCookies(upgrade.GetCost(self))
+	upgrade, present := self.upgrades[id]
+	to_buy := present && !self.upgradeStatus[id]
+	bought := to_buy && upgrade.GetIsUnlocked(self) && self.subtractCookies(upgrade.GetCost(self))
 	if bought {
-		(*self).upgrade_status[id] = true
-		(*self).setCPS((*self).calculateCPS())
-		(*self).setCookiesPerClick((*self).calculateCookiesPerClick())
+		self.upgradeStatus[id] = true
+		self.setCPS(self.calculateCPS())
+		self.setCookiesPerClick(self.calculateCookiesPerClick())
 
 	}
 	return bought
 }
 
-func (self *GameStateStruct) BuyBuilding(building_type BuildingType) bool {
-	cost := (*self).building_cost[building_type]((*self).n_buildings[building_type])
-	bought := (*self).subtractCookies(cost)
+func (self *GameStateStruct) BuyBuilding(buildingType BuildingType) bool {
+	cost := self.buildingCost[buildingType](self.nBuildings[buildingType])
+	bought := self.subtractCookies(cost)
 	if bought {
-		(*self).n_buildings[building_type] += 1
-		(*self).setCPS((*self).calculateCPS())
-		(*self).setCookiesPerClick((*self).calculateCookiesPerClick())
+		self.nBuildings[buildingType] += 1
+		self.setCPS(self.calculateCPS())
+		self.setCookiesPerClick(self.calculateCookiesPerClick())
 	}
 	return bought
 }
 
-func (self *GameStateStruct) GetCPS() float64 {
-	return (*self).cps
+func (self *GameStateStruct) GetCPS(start time.Time, end time.Time) float64 { // TODO(cripplet): Calculate timed buffs here.
+	return self.cps * float64(end.Sub(start)) / float64(time.Second)
 }
 
-func (self *GameStateStruct) GetCookiesPerClick() float64 {
-	return (*self).cookies_per_click
+func (self *GameStateStruct) GetCookiesPerClick() float64 { // TODO(cripplet): Calculate timed buffs here.
+	return self.cookiesPerClick
 }
 
-func (self *GameStateStruct) Click() { // TODO(cripplet): Add click upgrades.
-	(*self).addCookies((*self).cookies_per_click)
+func (self *GameStateStruct) MineCookies(start time.Time, end time.Time) {
+	self.addCookies(self.GetCPS(start, end))
+}
+
+func (self *GameStateStruct) Click() {
+	self.addCookies(self.GetCookiesPerClick())
 }
 
 /* End public API */
 
 func (self *GameStateStruct) setCPS(cps float64) {
-	(*self).cps = cps
+	self.cps = cps
 }
 
 func (self *GameStateStruct) addCookies(n float64) {
-	(*self).n_cookies += n
+	self.nCookies += n
 }
 
 func (self *GameStateStruct) subtractCookies(n float64) bool {
-	if (*self).n_cookies >= n {
-		(*self).n_cookies -= n
+	if self.nCookies >= n {
+		self.nCookies -= n
 		return true
 	}
 	return false
 }
 
 func (self *GameStateStruct) setCookiesPerClick(c float64) {
-	(*self).cookies_per_click = c
+	self.cookiesPerClick = c
+}
+
+func (self *GameStateStruct) loadData(d GameStateData) {
+	self.nCookies = d.NCookies
+	self.nBuildings = d.NBuildings
+	self.upgradeStatus = d.UpgradeStatus
 }
 
 func (self *GameStateStruct) loadBuildingCost(c map[BuildingType]BuildingCostFunction) {
-	for building_type := range (*self).building_cost {
-		(*self).building_cost[building_type] = func(current int) float64 { return 0 }
+	for buildingType := range self.buildingCost {
+		self.buildingCost[buildingType] = func(current int) float64 { return 0 }
 	}
 
-	for building_type, building_cost_function := range c {
-		(*self).building_cost[building_type] = building_cost_function
+	for buildingType, buildingCostFunction := range c {
+		self.buildingCost[buildingType] = buildingCostFunction
 	}
 }
 
 func (self *GameStateStruct) loadUpgrades(u map[UpgradeID]UpgradeInterface) {
-	for upgrade_id := range (*self).upgrades {
-		delete((*self).upgrades, upgrade_id)
+	for upgradeID := range self.upgrades {
+		delete(self.upgrades, upgradeID)
 	}
 
-	for upgrade_id, upgrade_interface := range u {
-		(*self).upgrades[upgrade_id] = upgrade_interface
+	for upgradeID, upgradeInterface := range u {
+		self.upgrades[upgradeID] = upgradeInterface
 	}
 }
 
-func (self *GameStateStruct) loadBuildingCPS(b map[BuildingType]float64) {
-	for building_type := range (*self).building_cps {
-		(*self).building_cps[building_type] = 0
+func (self *GameStateStruct) loadCookiesPerClickRef(c float64) {
+	self.cookiesPerClickRef = c
+}
+
+func (self *GameStateStruct) loadBuildingCPSRef(b map[BuildingType]float64) {
+	for buildingType := range self.buildingCPSRef {
+		self.buildingCPSRef[buildingType] = 0
 	}
 
-	for building_type, building_cps := range b {
-		(*self).building_cps[building_type] = building_cps
+	for buildingType, buildingCPSRef := range b {
+		self.buildingCPSRef[buildingType] = buildingCPSRef
 	}
 }
 
 func (self *GameStateStruct) calculateCookiesPerClick() float64 {
-	cookies_per_click_copy := (*self).GetCookiesPerClick()
+	cookiesPerClickCopy := self.cookiesPerClickRef
 
-	for upgrade_id, bought := range (*self).upgrade_status {
+	for upgradeID, bought := range self.upgradeStatus {
 		if bought {
-			cookies_per_click_copy *= (*self).GetUpgrades()[upgrade_id].GetClickMultiplier(self)
+			cookiesPerClickCopy *= self.GetUpgrades()[upgradeID].GetClickMultiplier(self)
 		}
 	}
 
-	return cookies_per_click_copy
+	return cookiesPerClickCopy
 }
 
 func (self *GameStateStruct) calculateCPS() float64 {
-	building_cps_copy := make(map[BuildingType]float64)
-	for building_type, building_type_cps := range (*self).building_cps {
-		building_cps_copy[building_type] = building_type_cps
+	buildingCPSRefCopy := make(map[BuildingType]float64)
+	for buildingType, buildingTypeCPS := range self.buildingCPSRef {
+		buildingCPSRefCopy[buildingType] = buildingTypeCPS
 	}
 
-	bought_upgrades := make([]UpgradeInterface, 0)
-	for upgrade_id, upgrade := range (*self).upgrades {
-		if (*self).upgrade_status[upgrade_id] {
-			bought_upgrades = append(bought_upgrades, upgrade)
+	boughtUpgrades := make([]UpgradeInterface, 0)
+	for upgradeID, upgrade := range self.upgrades {
+		if self.upgradeStatus[upgradeID] {
+			boughtUpgrades = append(boughtUpgrades, upgrade)
 		}
 	}
 
-	for _, upgrade := range bought_upgrades {
+	for _, upgrade := range boughtUpgrades {
 		if upgrade.GetBuildingType() < BUILDING_TYPE_ENUM_EOF {
-			building_cps_copy[upgrade.GetBuildingType()] *= upgrade.GetBuildingMultiplier(self)
+			buildingCPSRefCopy[upgrade.GetBuildingType()] *= upgrade.GetBuildingMultiplier(self)
 		}
 	}
 
-	var total_cps float64
-	for building_type, cps := range building_cps_copy {
-		total_cps += float64((*self).n_buildings[building_type]) * cps
+	var totalCPS float64
+	for buildingType, cps := range buildingCPSRefCopy {
+		totalCPS += float64(self.nBuildings[buildingType]) * cps
 	}
 
-	return total_cps
-}
-
-func calculateCookiesSince(start time.Time, end time.Time, cps float64) float64 {
-	return cps * float64(end.Sub(start)) / float64(time.Second)
-}
-
-func (self *GameStateStruct) loopDaemon() {
-	t := time.NewTicker(EPOCH_MILLISECONDS)
-	last_updated := time.Now()
-	for {
-		select {
-		case <-t.C:
-			current_time := time.Now()
-			(*self).addCookies(calculateCookiesSince(last_updated, current_time, (*self).GetCPS()))
-			last_updated = current_time
-			continue
-		case <-(*self).main_loop_done_signal:
-			t.Stop()
-			return
-		}
-	}
+	return totalCPS
 }
