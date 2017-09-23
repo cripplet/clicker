@@ -1,7 +1,6 @@
 package cookie_clicker
 
 import (
-	"fmt"
 	"testing"
 	"time"
 )
@@ -15,7 +14,7 @@ func TestMakeGameState(t *testing.T) {
 	var i BuildingType
 	for i = 0; i < BUILDING_TYPE_ENUM_EOF; i++ {
 		if s.nBuildings[i] != 0 {
-			t.Error(fmt.Sprintf("Expected %d instances of type %d, got %d", 0, i, s.nBuildings[i]))
+			t.Errorf("Expected %d instances of type %d, got %d", 0, i, s.nBuildings[i])
 		}
 	}
 }
@@ -24,7 +23,7 @@ func TestAddCookies(t *testing.T) {
 	s := NewGameState()
 	s.addCookies(1)
 	if s.GetCookies() != 1 {
-		t.Error(fmt.Sprintf("Expected %e cookies, got %e", 1, s.GetCookies()))
+		t.Errorf("Expected %e cookies, got %e", 1, s.GetCookies())
 	}
 }
 
@@ -54,7 +53,7 @@ func TestCalculateCPSNoUpgrades(t *testing.T) {
 
 	cps := s.calculateCPS()
 	if cps != 0.2 {
-		t.Error(fmt.Sprintf("Expected total CPS %e, got %e", 0.2, cps))
+		t.Errorf("Expected total CPS %e, got %e", 0.2, cps)
 	}
 }
 
@@ -79,7 +78,7 @@ func TestCalculateCPSSimpleUpgrade(t *testing.T) {
 
 	cps := s.calculateCPS()
 	if s.calculateCPS() != 0.4 {
-		t.Error(fmt.Sprintf("Expected total CPS %e, got %e", 0.4, cps))
+		t.Errorf("Expected total CPS %e, got %e", 0.4, cps)
 	}
 }
 
@@ -186,7 +185,7 @@ func TestBuyCPSUpgrade(t *testing.T) {
 	}
 
 	if s.GetCPS(start, end) != 0.4 {
-		t.Error(fmt.Sprintf("Expected CPS %e, got %e", 0.4, s.GetCPS(start, end)))
+		t.Errorf("Expected CPS %e, got %e", 0.4, s.GetCPS(start, end))
 	}
 }
 
@@ -214,7 +213,7 @@ func TestBuyCookiesPerClickUpgrade(t *testing.T) {
 	}
 
 	if s.GetCookiesPerClick() != 6 {
-		t.Error(fmt.Sprintf("Expected %e cookies per click, got %e", 6, s.GetCookiesPerClick()))
+		t.Errorf("Expected %e cookies per click, got %e", 6, s.GetCookiesPerClick())
 	}
 }
 
@@ -223,7 +222,7 @@ func TestBuyBuildingFree(t *testing.T) {
 	s.loadBuildingCPSRef(BUILDING_CPS_LOOKUP)
 	s.BuyBuilding(BUILDING_TYPE_MOUSE)
 	if s.GetCPS(start, end) != 0.2 {
-		t.Error(fmt.Sprintf("Expected CPS %e, got %e", 0.2, s.GetCPS(start, end)))
+		t.Errorf("Expected CPS %e, got %e", 0.2, s.GetCPS(start, end))
 	}
 }
 
@@ -236,7 +235,7 @@ func TestBuyBuildingTooExpensive(t *testing.T) {
 		t.Error("Expected to not buy building, but bought anyways.")
 	}
 	if s.nBuildings[BUILDING_TYPE_MOUSE] != 0 {
-		t.Error(fmt.Sprintf("Expected %d buildings, got %d", 0, s.nBuildings[BUILDING_TYPE_MOUSE]))
+		t.Errorf("Expected %d buildings, got %d", 0, s.nBuildings[BUILDING_TYPE_MOUSE])
 	}
 }
 
@@ -250,18 +249,45 @@ func TestBuyBuildingAffordable(t *testing.T) {
 		t.Error("Expected to buy building, but couldn't.")
 	}
 	if s.nBuildings[BUILDING_TYPE_MOUSE] != 1 {
-		t.Error(fmt.Sprintf("Expected %d buildings, got %d", 1, s.nBuildings[BUILDING_TYPE_MOUSE]))
+		t.Errorf("Expected %d buildings, got %d", 1, s.nBuildings[BUILDING_TYPE_MOUSE])
 	}
 	if s.GetCookies() != 0 {
-		t.Error(fmt.Sprintf("Expected %e cookies left, got %e", 0, s.GetCookies))
+		t.Errorf("Expected %e cookies left, got %e", 0, s.GetCookies)
 	}
 }
 
 func TestGameStateLoad(t *testing.T) {
 	s := NewGameState()
-	s.Load(GameStateData{})
+	s.Load(GameStateData{
+		Version: GAME_STATE_VERSION,
+	})
 
 	if s.buildingCPSRef[BUILDING_TYPE_MOUSE] != BUILDING_CPS_LOOKUP[BUILDING_TYPE_MOUSE] {
 		t.Error("Could not load game state constants properly")
+	}
+}
+
+func TestGameStateLoadBadVersion(t *testing.T) {
+	s := NewGameState()
+	err := s.Load(GameStateData{
+		Version: "some-bad-version",
+	})
+	if err == nil {
+		t.Error("Unexpected success while loading outdated data")
+	}
+}
+
+func TestGameStateDump(t *testing.T) {
+	s := NewGameState()
+	s.Load(GameStateData{})
+
+	s.addCookies(1)
+
+	d := s.Dump()
+	if d.NCookies != 1 {
+		t.Errorf("Expected %e cookies, got %e", 1, d.NCookies)
+	}
+	if d.Version != GAME_STATE_VERSION {
+		t.Errorf("Expected %s version, got %s", GAME_STATE_VERSION, d.Version)
 	}
 }

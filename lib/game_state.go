@@ -1,10 +1,15 @@
 package cookie_clicker
 
 import (
+	"errors"
+	"fmt"
 	"time"
 )
 
+var GAME_STATE_VERSION string = "v0.01"
+
 type GameStateData struct {
+	Version       string               `json:"version"`
 	NCookies      float64              `json:"n_cookies"`
 	NBuildings    map[BuildingType]int `json:"n_buildings"`
 	UpgradeStatus map[UpgradeID]bool   `json:"upgrade_status"`
@@ -51,8 +56,11 @@ func NewGameState() *GameStateStruct {
 
 /* Public API */
 
-func (self *GameStateStruct) Load(d GameStateData) {
-	self.loadData(d)
+func (self *GameStateStruct) Load(d GameStateData) error {
+	err := self.loadData(d)
+	if err != nil {
+		return err
+	}
 	self.loadBuildingCost(BUILDING_COST_LOOKUP)
 	self.loadUpgrades(UPGRADES_LOOKUP)
 	self.loadBuildingCPSRef(BUILDING_CPS_LOOKUP)
@@ -60,6 +68,24 @@ func (self *GameStateStruct) Load(d GameStateData) {
 
 	self.setCookiesPerClick(self.calculateCookiesPerClick())
 	self.setCPS(self.calculateCPS())
+
+	return nil
+}
+
+func (self *GameStateStruct) Dump() GameStateData {
+	d := GameStateData{
+		Version:       GAME_STATE_VERSION,
+		NCookies:      self.nCookies,
+		NBuildings:    make(map[BuildingType]int),
+		UpgradeStatus: make(map[UpgradeID]bool),
+	}
+	for buildingType, nBuildings := range self.nBuildings {
+		d.NBuildings[buildingType] = nBuildings
+	}
+	for upgradeID, bought := range self.upgradeStatus {
+		d.UpgradeStatus[upgradeID] = bought
+	}
+	return d
 }
 
 func (self *GameStateStruct) GetNBuildings() map[BuildingType]int {
@@ -144,7 +170,10 @@ func (self *GameStateStruct) setCookiesPerClick(c float64) {
 	self.cookiesPerClick = c
 }
 
-func (self *GameStateStruct) loadData(d GameStateData) {
+func (self *GameStateStruct) loadData(d GameStateData) error {
+	if d.Version != GAME_STATE_VERSION {
+		return errors.New(fmt.Sprintf("Outdated data version: %s < %s", d.Version, GAME_STATE_VERSION))
+	}
 	self.nCookies = d.NCookies
 
 	for buildingType, _ := range self.nBuildings {
@@ -153,6 +182,7 @@ func (self *GameStateStruct) loadData(d GameStateData) {
 	for upgradeType, _ := range self.upgradeStatus {
 		self.upgradeStatus[upgradeType] = d.UpgradeStatus[upgradeType]
 	}
+	return nil
 }
 
 func (self *GameStateStruct) loadBuildingCost(c map[BuildingType]BuildingCostFunction) {
