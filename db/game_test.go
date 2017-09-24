@@ -36,10 +36,10 @@ func TestToFromInternalFBGameState(t *testing.T) {
 		Version:  version,
 		NCookies: nCookies,
 		NBuildings: map[string]int{
-			fmt.Sprintf("_%d", cookie_clicker.BUILDING_TYPE_MOUSE): nMice,
+			cookie_clicker.BUILDING_TYPE_LOOKUP[cookie_clicker.BUILDING_TYPE_MOUSE]: nMice,
 		},
 		UpgradeStatus: map[string]bool{
-			fmt.Sprintf("_%d", cookie_clicker.UPGRADE_ID_REINFORCED_INDEX_FINGER): upgradeBought,
+			cookie_clicker.UPGRADE_ID_LOOKUP[cookie_clicker.UPGRADE_ID_REINFORCED_INDEX_FINGER]: upgradeBought,
 		},
 	}
 	internalGameState := internalFBGameState{

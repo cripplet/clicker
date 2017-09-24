@@ -8,8 +8,6 @@ import (
 	"github.com/cripplet/clicker/firebase-db"
 	"github.com/cripplet/clicker/lib"
 	"net/http"
-	"strconv"
-	"strings"
 	"time"
 )
 
@@ -51,10 +49,10 @@ func toInternalFBGameState(s FBGameState) internalFBGameState {
 		UpgradeStatus: make(map[string]bool),
 	}
 	for buildingType, nBuildings := range s.GameData.NBuildings {
-		internalData.NBuildings[fmt.Sprintf("_%d", buildingType)] = nBuildings
+		internalData.NBuildings[cookie_clicker.BUILDING_TYPE_LOOKUP[buildingType]] = nBuildings
 	}
 	for upgradeID, bought := range s.GameData.UpgradeStatus {
-		internalData.UpgradeStatus[fmt.Sprintf("_%d", upgradeID)] = bought
+		internalData.UpgradeStatus[cookie_clicker.UPGRADE_ID_LOOKUP[upgradeID]] = bought
 	}
 	return internalFBGameState{
 		ID:              s.ID,
@@ -72,12 +70,10 @@ func fromInternalFBGameState(s internalFBGameState) FBGameState {
 		UpgradeStatus: make(map[cookie_clicker.UpgradeID]bool),
 	}
 	for buildingTypeString, nBuildings := range s.GameData.NBuildings {
-		buildingTypeInt, _ := strconv.Atoi(strings.Replace(buildingTypeString, "_", "", -1))
-		gameData.NBuildings[cookie_clicker.BuildingType(buildingTypeInt)] = nBuildings
+		gameData.NBuildings[cookie_clicker.BUILDING_TYPE_REVERSE_LOOKUP[buildingTypeString]] = nBuildings
 	}
 	for upgradeIDString, bought := range s.GameData.UpgradeStatus {
-		upgradeIDInt, _ := strconv.Atoi(strings.Replace(upgradeIDString, "_", "", -1))
-		gameData.UpgradeStatus[cookie_clicker.UpgradeID(upgradeIDInt)] = bought
+		gameData.UpgradeStatus[cookie_clicker.UPGRADE_ID_REVERSE_LOOKUP[upgradeIDString]] = bought
 	}
 	return FBGameState{
 		ID:              s.ID,
@@ -115,11 +111,11 @@ func newGameState() (FBGameState, error) {
 	}
 
 	p := PostID{}
-	_, _, _, err = firebase_db.Post(
+	_, _, eTag, err := firebase_db.Post(
 		cc_fb_config.CC_FIREBASE_CONFIG.Client,
 		fmt.Sprintf("%s/game.json", cc_fb_config.CC_FIREBASE_CONFIG.ProjectPath),
 		iJSON,
-		false,
+		true,
 		map[string]string{},
 		&p,
 	)
@@ -128,6 +124,11 @@ func newGameState() (FBGameState, error) {
 	}
 
 	i.ID = p.Name
+
+	err = SaveGameState(fromInternalFBGameState(i), eTag)
+	if err != nil {
+		return FBGameState{}, err
+	}
 	return fromInternalFBGameState(i), nil
 }
 
