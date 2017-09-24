@@ -10,25 +10,37 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type FBGameState struct {
-	ID       string
-	Exist    bool
+	ID    string
+	Exist bool
+
+	// Imported Game data, used to initialize a game.
 	GameData cookie_clicker.GameStateData
+
+	// Calculated Game data.
+	GameObservables FBGameObservableData
+}
+
+type FBGameObservableData struct {
+	CookiesPerClick float64 `json:"cookies_per_click"`
+	CPS             float64 `json:"cps"`
 }
 
 type internalGameStateData struct {
 	Version       string          `json:"version"`
 	NCookies      float64         `json:"n_cookies"`
-	NBuildings    map[string]int  `json:"n_buildings"`
-	UpgradeStatus map[string]bool `json:"upgrade_status"`
+	NBuildings    map[string]int  `json:"building"`
+	UpgradeStatus map[string]bool `json:"upgrade"`
 }
 
 type internalFBGameState struct {
-	ID       string                `json:"ID"`
-	Exist    bool                  `json:"exist"`
-	GameData internalGameStateData `json:"data"`
+	ID              string                `json:"id"`
+	Exist           bool                  `json:"exist"`
+	GameData        internalGameStateData `json:"data"`
+	GameObservables FBGameObservableData  `json:"observables"`
 }
 
 func toInternalFBGameState(s FBGameState) internalFBGameState {
@@ -45,9 +57,10 @@ func toInternalFBGameState(s FBGameState) internalFBGameState {
 		internalData.UpgradeStatus[fmt.Sprintf("_%d", upgradeID)] = bought
 	}
 	return internalFBGameState{
-		ID:       s.ID,
-		Exist:    s.Exist,
-		GameData: internalData,
+		ID:              s.ID,
+		Exist:           s.Exist,
+		GameData:        internalData,
+		GameObservables: s.GameObservables,
 	}
 }
 
@@ -67,9 +80,10 @@ func fromInternalFBGameState(s internalFBGameState) FBGameState {
 		gameData.UpgradeStatus[cookie_clicker.UpgradeID(upgradeIDInt)] = bought
 	}
 	return FBGameState{
-		ID:       s.ID,
-		Exist:    s.Exist,
-		GameData: gameData,
+		ID:              s.ID,
+		Exist:           s.Exist,
+		GameData:        gameData,
+		GameObservables: s.GameObservables,
 	}
 }
 
@@ -78,22 +92,33 @@ type PostID struct {
 }
 
 func newGameState() (FBGameState, error) {
+	n := time.Now()
+
 	d := cookie_clicker.NewGameStateData()
-	g := toInternalFBGameState(FBGameState{
-		Exist:    true,
-		GameData: *d,
-	})
-	gJSON, err := json.Marshal(&g)
+	g := cookie_clicker.NewGameState()
+	g.Load(*d)
+	o := FBGameObservableData{
+		CookiesPerClick: g.GetCookiesPerClick(),
+		CPS:             g.GetCPS(n, n.Add(time.Second)),
+	}
+
+	s := FBGameState{
+		Exist:           true,
+		GameData:        *d,
+		GameObservables: o,
+	}
+
+	i := toInternalFBGameState(s)
+	iJSON, err := json.Marshal(&i)
 	if err != nil {
 		return FBGameState{}, err
 	}
 
 	p := PostID{}
-
 	_, _, _, err = firebase_db.Post(
 		cc_fb_config.CC_FIREBASE_CONFIG.Client,
 		fmt.Sprintf("%s/game.json", cc_fb_config.CC_FIREBASE_CONFIG.ProjectPath),
-		gJSON,
+		iJSON,
 		false,
 		map[string]string{},
 		&p,
@@ -102,8 +127,8 @@ func newGameState() (FBGameState, error) {
 		return FBGameState{}, err
 	}
 
-	g.ID = p.Name
-	return fromInternalFBGameState(g), nil
+	i.ID = p.Name
+	return fromInternalFBGameState(i), nil
 }
 
 func LoadGameState(id string) (FBGameState, string, error) {
