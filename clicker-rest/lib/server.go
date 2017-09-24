@@ -22,6 +22,9 @@ func regexpMatchNamedGroups(r *regexp.Regexp, s string) map[string]string {
 	return ret
 }
 
+type GameID struct {
+	ID string `json:"id"`
+}
 func NewGameHandler(resp http.ResponseWriter, req *http.Request) {
 	switch {
 	case req.Method == http.MethodPost:
@@ -30,12 +33,15 @@ func NewGameHandler(resp http.ResponseWriter, req *http.Request) {
 			http.Error(resp, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		sJSON, err := json.Marshal(s)
+		g := GameID{
+			ID: s.ID,
+		}
+		gJSON, err := json.Marshal(&g)
 		if err != nil {
 			http.Error(resp, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		resp.Write(sJSON)
+		resp.Write(gJSON)
 		break
 	default:
 		resp.WriteHeader(http.StatusMethodNotAllowed)

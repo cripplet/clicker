@@ -47,9 +47,9 @@ func TestNewGameHandler(t *testing.T) {
 		t.Errorf("Unexpected HTTP error code %d: %s", respRec.Result().StatusCode, string(respRec.Body.Bytes()))
 	}
 
-	s := cc_fb.FBGameState{}
-	json.Unmarshal(respRec.Body.Bytes(), &s)
-	if s.ID == "" {
+	g := GameID{}
+	json.Unmarshal(respRec.Body.Bytes(), &g)
+	if g.ID == "" {
 		t.Error("Game ID was not set when creating new game")
 	}
 }
@@ -66,21 +66,21 @@ func TestNewGameHandlerInvalidMethod(t *testing.T) {
 	}
 }
 
-func TestNewGameHandlerClick(t *testing.T) {
+func TestClickHandler(t *testing.T) {
 	cc_fb.ResetEnvironment(t)
 
 	req, _ := http.NewRequest(http.MethodPost, "/game/", nil)
 	respRec := httptest.NewRecorder()
 	http.HandlerFunc(NewGameHandler).ServeHTTP(respRec, req)
 
-	s := cc_fb.FBGameState{}
-	json.Unmarshal(respRec.Body.Bytes(), &s)
+	g := GameID{}
+	json.Unmarshal(respRec.Body.Bytes(), &g)
 
-	req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("/game/%s/cookie/click", s.ID), nil)
+	req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("/game/%s/cookie/click", g.ID), nil)
 	respRec = httptest.NewRecorder()
 	http.HandlerFunc(ClickHandler).ServeHTTP(respRec, req)
 
-	s, _, err := cc_fb.LoadGameState(s.ID)
+	s, _, err := cc_fb.LoadGameState(g.ID)
 	if err != nil {
 		t.Errorf("Unexpected error when loading game: %v", err)
 	}
