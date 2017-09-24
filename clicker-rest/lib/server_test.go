@@ -80,7 +80,7 @@ func TestNewGameHandlerClick(t *testing.T) {
 	respRec = httptest.NewRecorder()
 	http.HandlerFunc(ClickHandler).ServeHTTP(respRec, req)
 
-	s, err := cc_fb.LoadGameState(s.ID)
+	s, _, err := cc_fb.LoadGameState(s.ID)
 	if err != nil {
 		t.Errorf("Unexpected error when loading game: %v", err)
 	}

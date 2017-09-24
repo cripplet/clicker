@@ -58,7 +58,7 @@ func TestToFromInternalFBGameState(t *testing.T) {
 
 func TestNewGame(t *testing.T) {
 	ResetEnvironment(t)
-	g, err := NewGameState()
+	g, err := newGameState()
 	if err != nil {
 		t.Errorf("Unexpected error when loading game state: %v", err)
 	}
@@ -70,9 +70,9 @@ func TestNewGame(t *testing.T) {
 
 func TestLoadGame(t *testing.T) {
 	ResetEnvironment(t)
-	g, _ := NewGameState()
+	g, _ := newGameState()
 
-	h, err := LoadGameState(g.ID)
+	h, _, err := LoadGameState(g.ID)
 	if err != nil {
 		t.Errorf("Unexpected error when resetting database: %v", err)
 	}
@@ -84,7 +84,7 @@ func TestLoadGame(t *testing.T) {
 
 func TestLoadNonexistentGame(t *testing.T) {
 	ResetEnvironment(t)
-	g, err := LoadGameState("some-id")
+	g, _, err := LoadGameState("some-id")
 
 	if err != nil {
 		t.Errorf("Unexpected error when resetting database: %v", err)
@@ -97,15 +97,15 @@ func TestLoadNonexistentGame(t *testing.T) {
 
 func TestSaveGame(t *testing.T) {
 	ResetEnvironment(t)
-	g, _ := NewGameState()
+	g, _ := newGameState()
 	g.ID = "some-other-id"
 
-	err := SaveGameState(g)
+	err := SaveGameState(g, "null_etag")
 	if err != nil {
 		t.Errorf("Unexpected error when saving game state: %v", err)
 	}
 
-	h, _ := LoadGameState(g.ID)
+	h, _, _ := LoadGameState(g.ID)
 	if !h.Exist {
 		t.Errorf("Could not find game %s", g.ID)
 	}

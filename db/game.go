@@ -7,7 +7,6 @@ import (
 	"github.com/cripplet/clicker/db/config"
 	"github.com/cripplet/clicker/firebase-db"
 	"github.com/cripplet/clicker/lib"
-	"math/rand"
 	"net/http"
 	"strconv"
 	"strings"
@@ -74,20 +73,11 @@ func fromInternalFBGameState(s internalFBGameState) FBGameState {
 	}
 }
 
-func randomString(n int) string {
-	r := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = r[rand.Intn(len(r))]
-	}
-	return string(b)
-}
-
 type PostID struct {
 	Name string `json:"name"`
 }
 
-func NewGameState() (FBGameState, error) {
+func newGameState() (FBGameState, error) {
 	d := cookie_clicker.NewGameStateData()
 	g := toInternalFBGameState(FBGameState{
 		Exist:    true,
@@ -116,29 +106,33 @@ func NewGameState() (FBGameState, error) {
 	return fromInternalFBGameState(g), nil
 }
 
-func LoadGameState(id string) (FBGameState, error) {
+func LoadGameState(id string) (FBGameState, string, error) {
 	if id == "" {
-		return NewGameState()
+		g, err := newGameState()
+		if err != nil {
+			return FBGameState{}, "", nil
+		}
+		id = g.ID
 	}
 
-	g := internalFBGameState{}
-	_, _, _, err := firebase_db.Get(
+	i := internalFBGameState{}
+	_, _, eTag, err := firebase_db.Get(
 		cc_fb_config.CC_FIREBASE_CONFIG.Client,
 		fmt.Sprintf("%s/game/%s.json", cc_fb_config.CC_FIREBASE_CONFIG.ProjectPath, id),
-		false,
+		true,
 		map[string]string{},
-		&g,
+		&i,
 	)
 	if err != nil {
-		return FBGameState{}, err
+		return FBGameState{}, "", err
 	}
-	if g.Exist {
-		g.ID = id
+	if i.Exist {
+		i.ID = id
 	}
-	return fromInternalFBGameState(g), nil
+	return fromInternalFBGameState(i), eTag, nil
 }
 
-func SaveGameState(g FBGameState) error {
+func SaveGameState(g FBGameState, eTag string) error {
 	i := toInternalFBGameState(g)
 	iJSON, err := json.Marshal(&i)
 	if err != nil {
@@ -150,7 +144,7 @@ func SaveGameState(g FBGameState) error {
 		fmt.Sprintf("%s/game/%s.json", cc_fb_config.CC_FIREBASE_CONFIG.ProjectPath, g.ID),
 		iJSON,
 		false,
-		"",
+		eTag,
 		map[string]string{},
 		nil,
 	)

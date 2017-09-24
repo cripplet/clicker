@@ -25,7 +25,7 @@ func regexpMatchNamedGroups(r *regexp.Regexp, s string) map[string]string {
 func NewGameHandler(resp http.ResponseWriter, req *http.Request) {
 	switch {
 	case req.Method == http.MethodPost:
-		s, err := cc_fb.NewGameState()
+		s, _, err := cc_fb.LoadGameState("")
 		if err != nil {
 			http.Error(resp, err.Error(), http.StatusInternalServerError)
 			return
@@ -42,13 +42,12 @@ func NewGameHandler(resp http.ResponseWriter, req *http.Request) {
 	}
 }
 
-// TODO(cripplet): implement the hash
-// TODO(cripplet): implement etag
+// TODO(cripplet): Implement multi-click hashing.
 func ClickHandler(resp http.ResponseWriter, req *http.Request) {
 	gameID := regexpMatchNamedGroups(clickRegex, req.URL.Path)["gameID"]
 	switch {
 	case req.Method == http.MethodPost:
-		s, err := cc_fb.LoadGameState(gameID)
+		s, eTag, err := cc_fb.LoadGameState(gameID)
 		if err != nil {
 			http.Error(resp, err.Error(), http.StatusInternalServerError)
 			return
@@ -61,7 +60,7 @@ func ClickHandler(resp http.ResponseWriter, req *http.Request) {
 		g.Load(s.GameData)
 		g.Click()
 		s.GameData = g.Dump()
-		cc_fb.SaveGameState(s)
+		cc_fb.SaveGameState(s, eTag)
 	default:
 		resp.WriteHeader(http.StatusMethodNotAllowed)
 	}
