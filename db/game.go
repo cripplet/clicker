@@ -100,7 +100,7 @@ func NewGameState() (FBGameState, error) {
 
 	p := PostID{}
 
-	_, _, err = firebase_db.Post(
+	_, _, _, err = firebase_db.Post(
 		cc_fb_config.CC_FIREBASE_CONFIG.Client,
 		fmt.Sprintf("%s/game.json", cc_fb_config.CC_FIREBASE_CONFIG.ProjectPath),
 		gJSON,
@@ -122,7 +122,7 @@ func LoadGameState(id string) (FBGameState, error) {
 	}
 
 	g := internalFBGameState{}
-	_, _, err := firebase_db.Get(
+	_, _, _, err := firebase_db.Get(
 		cc_fb_config.CC_FIREBASE_CONFIG.Client,
 		fmt.Sprintf("%s/game/%s.json", cc_fb_config.CC_FIREBASE_CONFIG.ProjectPath, id),
 		false,
@@ -145,7 +145,7 @@ func SaveGameState(g FBGameState) error {
 		return err
 	}
 
-	_, statusCode, err := firebase_db.Put(
+	_, statusCode, _, err := firebase_db.Put(
 		cc_fb_config.CC_FIREBASE_CONFIG.Client,
 		fmt.Sprintf("%s/game/%s.json", cc_fb_config.CC_FIREBASE_CONFIG.ProjectPath, g.ID),
 		iJSON,

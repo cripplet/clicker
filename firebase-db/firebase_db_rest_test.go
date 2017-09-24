@@ -49,7 +49,7 @@ func TestPut(t *testing.T) {
 	c, _ := NewGoogleClient(credentials)
 	expected, _ := json.Marshal("test-data")
 
-	b, status_code, err := Put(
+	b, statusCode, _, err := Put(
 		c,
 		fmt.Sprintf("%s/test_put.json", project_root),
 		expected,
@@ -63,8 +63,8 @@ func TestPut(t *testing.T) {
 		t.Errorf("Unexpected PUT error: %v", err)
 	}
 
-	if status_code != http.StatusOK {
-		t.Errorf("Unexpected HTTP error: %d", status_code)
+	if statusCode != http.StatusOK {
+		t.Errorf("Unexpected HTTP error: %d", statusCode)
 	}
 
 	if !bytes.Equal(b, expected) {
@@ -120,7 +120,7 @@ func TestGet(t *testing.T) {
 		nil,
 	)
 
-	b, status_code, err := Get(
+	b, statusCode, _, err := Get(
 		c,
 		fmt.Sprintf("%s/test_get.json", project_root),
 		false,
@@ -132,12 +132,96 @@ func TestGet(t *testing.T) {
 		t.Errorf("Unexpected GET error: %v", err)
 	}
 
-	if status_code != http.StatusOK {
-		t.Errorf("Unexpected HTTP error: %d", status_code)
+	if statusCode != http.StatusOK {
+		t.Errorf("Unexpected HTTP error: %d", statusCode)
 	}
 
 	if !bytes.Equal(b, expected) {
 		t.Errorf("Returned GET data is not expected: %s != %s", string(b), string(expected))
+	}
+}
+
+func TestGetETag(t *testing.T) {
+	ResetEnvironment(t)
+	c, _ := NewGoogleClient(credentials)
+
+	data, _ := json.Marshal("test-data")
+	Put(
+		c,
+		fmt.Sprintf("%s/test_get_etag.json", project_root),
+		data,
+		false,
+		"",
+		map[string]string{},
+		nil,
+	)
+
+	_, statusCode, eTag, err := Get(
+		c,
+		fmt.Sprintf("%s/test_get_etag.json", project_root),
+		true,
+		map[string]string{},
+		nil,
+	)
+
+	if err != nil {
+		t.Errorf("Unexpected GET error: %v", err)
+	}
+
+	if statusCode != http.StatusOK {
+		t.Errorf("Unexpected HTTP error: %d", statusCode)
+	}
+
+	if eTag == "null_etag" {
+		t.Error("Unexpected null ETag")
+	}
+}
+
+func TestPutETagMismatch(t *testing.T) {
+	ResetEnvironment(t)
+	c, _ := NewGoogleClient(credentials)
+
+	data, _ := json.Marshal("test-data")
+	_, statusCode, _, err := Put(
+		c,
+		fmt.Sprintf("%s/test_put_etag_mismatch.json", project_root),
+		data,
+		false,
+		"some-invalid-etag",
+		map[string]string{},
+		nil,
+	)
+
+	if err != nil {
+		t.Errorf("Unexpected GET error: %v", err)
+	}
+
+	if statusCode != http.StatusPreconditionFailed {
+		t.Errorf("Unexpected HTTP response code: %d", statusCode)
+	}
+}
+
+func TestPutETag(t *testing.T) {
+	ResetEnvironment(t)
+	c, _ := NewGoogleClient(credentials)
+
+	data, _ := json.Marshal("test-data")
+	_, statusCode, _, err := Put(
+		c,
+		fmt.Sprintf("%s/test_put_etag_mismatch.json", project_root),
+		data,
+		false,
+		"null_etag",
+		map[string]string{},
+		nil,
+	)
+
+	if err != nil {
+		t.Errorf("Unexpected GET error: %v", err)
+	}
+
+	if statusCode != http.StatusOK {
+		t.Errorf("Unexpected HTTP response code: %d", statusCode)
 	}
 }
 
@@ -151,7 +235,7 @@ func TestPost(t *testing.T) {
 	c, _ := NewGoogleClient(credentials)
 	expected, _ := json.Marshal("test-element")
 
-	b, status_code, err := Post(
+	b, statusCode, _, err := Post(
 		c,
 		fmt.Sprintf("%s/test_post.json", project_root),
 		expected,
@@ -164,14 +248,14 @@ func TestPost(t *testing.T) {
 		t.Errorf("Unexpected POST error: %v", err)
 	}
 
-	if status_code != http.StatusOK {
-		t.Errorf("Unexpected HTTP error: %d", status_code)
+	if statusCode != http.StatusOK {
+		t.Errorf("Unexpected HTTP error: %d", statusCode)
 	}
 
 	r := PostResponseStruct{}
 	json.Unmarshal(b, &r)
 
-	b, _, _ = Get(
+	b, _, _, _ = Get(
 		c,
 		fmt.Sprintf("%s/test_post.json", project_root),
 		false,
@@ -223,7 +307,7 @@ func TestPatch(t *testing.T) {
 		Last: "Dillinger",
 	})
 
-	b, status_code, err := Patch(
+	b, statusCode, _, err := Patch(
 		c,
 		fmt.Sprintf("%s/test_patch.json", project_root),
 		data,
@@ -235,15 +319,15 @@ func TestPatch(t *testing.T) {
 		t.Errorf("Unexpected DELETE error: %v", err)
 	}
 
-	if status_code != http.StatusOK {
-		t.Errorf("Unexpected HTTP error: %d", status_code)
+	if statusCode != http.StatusOK {
+		t.Errorf("Unexpected HTTP error: %d", statusCode)
 	}
 
 	if !bytes.Equal(b, data) {
 		t.Error("Returned PATCH data is not expected: %s != %s", string(b), string(data))
 	}
 
-	b, _, _ = Get(
+	b, _, _, _ = Get(
 		c,
 		fmt.Sprintf("%s/test_patch.json", project_root),
 		false,
@@ -272,7 +356,7 @@ func TestDelete(t *testing.T) {
 		nil,
 	)
 
-	_, status_code, err := Delete(
+	_, statusCode, _, err := Delete(
 		c,
 		fmt.Sprintf("%s/test_delete.json", project_root),
 		false,
@@ -284,11 +368,11 @@ func TestDelete(t *testing.T) {
 		t.Errorf("Unexpected DELETE error: %v", err)
 	}
 
-	if status_code != http.StatusOK {
-		t.Errorf("Unexpected HTTP error: %d", status_code)
+	if statusCode != http.StatusOK {
+		t.Errorf("Unexpected HTTP error: %d", statusCode)
 	}
 
-	b, _, _ := Get(
+	b, _, _, _ := Get(
 		c,
 		fmt.Sprintf("%s/test_delete.json", project_root),
 		false,

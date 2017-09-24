@@ -9,7 +9,7 @@ import (
 )
 
 func ResetEnvironment(t *testing.T) {
-	_, statusCode, err := firebase_db.Delete(
+	_, statusCode, _, err := firebase_db.Delete(
 		cc_fb_config.CC_FIREBASE_CONFIG.Client,
 		fmt.Sprintf("%s.json", cc_fb_config.CC_FIREBASE_CONFIG.ProjectPath),
 		false,
