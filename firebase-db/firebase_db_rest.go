@@ -3,6 +3,7 @@ package firebase_db
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
 )
@@ -10,6 +11,9 @@ import (
 //  See https://firebase.google.com/docs/reference/rest/database/.
 
 func do(c *http.Client, req *http.Request) ([]byte, int, error) {
+	if c == nil {
+		return nil, 0, errors.New("Unexpected nil HTTP client provided.")
+	}
 	resp, err := c.Do(req)
 	if err != nil {
 		return nil, 0, err
@@ -38,12 +42,12 @@ func Get(
 		req.Header.Set("X-Firebase-ETag", "true")
 	}
 
-	b, status_code, err := do(c, req)
+	b, statusCode, err := do(c, req)
 	if err == nil && v != nil {
 		err = json.Unmarshal(b, v)
 	}
 
-	return b, status_code, err
+	return b, statusCode, err
 }
 
 func Put(
@@ -69,12 +73,12 @@ func Put(
 		req.Header.Set("if-match", if_match)
 	}
 
-	b, status_code, err := do(c, req)
+	b, statusCode, err := do(c, req)
 	if err == nil && v != nil {
 		err = json.Unmarshal(b, v)
 	}
 
-	return b, status_code, err
+	return b, statusCode, err
 }
 
 func Post(
@@ -96,12 +100,12 @@ func Post(
 		req.Header.Set("X-Firebase-ETag", "true")
 	}
 
-	b, status_code, err := do(c, req)
+	b, statusCode, err := do(c, req)
 	if err == nil && v != nil {
 		err = json.Unmarshal(b, v)
 	}
 
-	return b, status_code, err
+	return b, statusCode, err
 }
 
 func Patch(
@@ -119,12 +123,12 @@ func Patch(
 
 	req.Header.Set("Content-Type", "application/json")
 
-	b, status_code, err := do(c, req)
+	b, statusCode, err := do(c, req)
 	if err == nil && v != nil {
 		err = json.Unmarshal(b, v)
 	}
 
-	return b, status_code, err
+	return b, statusCode, err
 }
 
 func Delete(
@@ -147,6 +151,6 @@ func Delete(
 		req.Header.Set("if-match", if_match)
 	}
 
-	_, status_code, err := do(c, req)
-	return nil, status_code, err
+	_, statusCode, err := do(c, req)
+	return nil, statusCode, err
 }

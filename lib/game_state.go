@@ -9,10 +9,10 @@ import (
 var GAME_STATE_VERSION string = "v0.01"
 
 type GameStateData struct {
-	Version       string               `json:"version"`
-	NCookies      float64              `json:"n_cookies"`
-	NBuildings    map[BuildingType]int `json:"n_buildings"`
-	UpgradeStatus map[UpgradeID]bool   `json:"upgrade_status"`
+	Version       string
+	NCookies      float64
+	NBuildings    map[BuildingType]int
+	UpgradeStatus map[UpgradeID]bool
 }
 
 type GameStateStruct struct {
@@ -32,8 +32,8 @@ type GameStateStruct struct {
 
 func NewGameStateData() *GameStateData {
 	d := GameStateData{
-		Version: GAME_STATE_VERSION,
-		NBuildings: make(map[BuildingType]int),
+		Version:       GAME_STATE_VERSION,
+		NBuildings:    make(map[BuildingType]int),
 		UpgradeStatus: make(map[UpgradeID]bool),
 	}
 	return &d

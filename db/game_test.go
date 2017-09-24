@@ -3,24 +3,56 @@ package cc_fb
 import (
 	"fmt"
 	"github.com/cripplet/clicker/db/config"
-	"github.com/cripplet/clicker/firebase-db"
-	"net/http"
+	"github.com/cripplet/clicker/lib"
+	"reflect"
 	"testing"
 )
 
-func ResetEnvironment(t *testing.T) {
-	_, statusCode, err := firebase_db.Delete(
-		cc_fb_config.CC_FIREBASE_CONFIG.Client,
-		fmt.Sprintf("%s.json", cc_fb_config.CC_FIREBASE_CONFIG.ProjectPath),
-		false,
-		"",
-		map[string]string{},
-	)
-	if err != nil {
-		t.Errorf("Unexpected error when resetting database: %v", err)
+func TestToFromInternalFBGameState(t *testing.T) {
+	version := "some-version"
+	nCookies := 10.0
+	nMice := 2
+	upgradeBought := true
+	gameID := "some-id"
+	exist := true
+
+	gameData := cookie_clicker.GameStateData{
+		Version:  version,
+		NCookies: nCookies,
+		NBuildings: map[cookie_clicker.BuildingType]int{
+			cookie_clicker.BUILDING_TYPE_MOUSE: nMice,
+		},
+		UpgradeStatus: map[cookie_clicker.UpgradeID]bool{
+			cookie_clicker.UPGRADE_ID_REINFORCED_INDEX_FINGER: upgradeBought,
+		},
 	}
-	if statusCode != http.StatusOK {
-		t.Errorf("Unexpected HTTP status code when deleting root directory: %d != %d", statusCode, http.StatusOK)
+	gameState := FBGameState{
+		ID:       gameID,
+		Exist:    exist,
+		GameData: gameData,
+	}
+
+	internalGameData := internalGameStateData{
+		Version:  version,
+		NCookies: nCookies,
+		NBuildings: map[string]int{
+			fmt.Sprintf("_%d", cookie_clicker.BUILDING_TYPE_MOUSE): nMice,
+		},
+		UpgradeStatus: map[string]bool{
+			fmt.Sprintf("_%d", cookie_clicker.UPGRADE_ID_REINFORCED_INDEX_FINGER): upgradeBought,
+		},
+	}
+	internalGameState := internalFBGameState{
+		ID:       gameID,
+		Exist:    exist,
+		GameData: internalGameData,
+	}
+
+	if !reflect.DeepEqual(toInternalFBGameState(gameState), internalGameState) {
+		t.Error("Error converting to internal game state")
+	}
+	if !reflect.DeepEqual(fromInternalFBGameState(internalGameState), gameState) {
+		t.Error("Error converting from internal game state")
 	}
 }
 
@@ -60,6 +92,22 @@ func TestLoadNonexistentGame(t *testing.T) {
 
 	if g.ID != "" {
 		t.Errorf("Found game with given ID: %s", g.ID)
+	}
+}
+
+func TestSaveGame(t *testing.T) {
+	ResetEnvironment(t)
+	g, _ := NewGameState()
+	g.ID = "some-other-id"
+
+	err := SaveGameState(g)
+	if err != nil {
+		t.Errorf("Unexpected error when saving game state: %v", err)
+	}
+
+	h, _ := LoadGameState(g.ID)
+	if !h.Exist {
+		t.Errorf("Could not find game %s", g.ID)
 	}
 }
 
