@@ -1,6 +1,7 @@
 package cc_rest_lib
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/cripplet/clicker/db"
@@ -11,7 +12,12 @@ import (
 	"testing"
 )
 
-func NewMockServer(t *testing.T, p int, h func(http.ResponseWriter, *http.Request)) *httptest.Server {
+func getGameIDFromPath(p string) string {
+	r := regexp.MustCompile(`/(?P<gameID>[\w-]*)\.json$`)
+	return regexpMatchNamedGroups(r, p)["gameID"]
+}
+
+func newMockServer(t *testing.T, p int, h func(http.ResponseWriter, *http.Request)) *httptest.Server {
 	testServer := httptest.NewUnstartedServer(http.HandlerFunc(h))
 	listener, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", p)) // http://blog.manugarri.com/how-to-mock-http-endpoints-in-golang/
 	if err != nil {
@@ -47,9 +53,9 @@ func TestNewGameHandler(t *testing.T) {
 		t.Errorf("Unexpected HTTP error code %d: %s", respRec.Result().StatusCode, string(respRec.Body.Bytes()))
 	}
 
-	g := GameID{}
+	g := NewGameResponse{}
 	json.Unmarshal(respRec.Body.Bytes(), &g)
-	if g.ID == "" {
+	if g.Path == "" {
 		t.Error("Game ID was not set when creating new game")
 	}
 }
@@ -73,14 +79,23 @@ func TestClickHandler(t *testing.T) {
 	respRec := httptest.NewRecorder()
 	http.HandlerFunc(NewGameHandler).ServeHTTP(respRec, req)
 
-	g := GameID{}
+	g := NewGameResponse{}
 	json.Unmarshal(respRec.Body.Bytes(), &g)
 
-	req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("/game/%s/cookie/click", g.ID), nil)
+	clickRequest := ClickRequest{
+		NTimes: 10,
+	}
+	clickRequestJSON, _ := json.Marshal(&clickRequest)
+
+	req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("/game/%s/cookie/click", getGameIDFromPath(g.Path)), bytes.NewReader(clickRequestJSON))
 	respRec = httptest.NewRecorder()
 	http.HandlerFunc(ClickHandler).ServeHTTP(respRec, req)
 
-	s, _, err := cc_fb.LoadGameState(g.ID)
+	if respRec.Result().StatusCode != http.StatusNoContent {
+		t.Errorf("Unexpected HTTP error code %d != %d", respRec.Result().StatusCode, http.StatusNoContent)
+	}
+
+	s, _, err := cc_fb.LoadGameState(getGameIDFromPath(g.Path))
 	if err != nil {
 		t.Errorf("Unexpected error when loading game: %v", err)
 	}
