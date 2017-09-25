@@ -1,6 +1,8 @@
 package cc_rest_lib
 
 import (
+	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"github.com/cripplet/clicker/db"
@@ -56,10 +58,9 @@ func NewGameHandler(resp http.ResponseWriter, req *http.Request) {
 
 type ClickRequest struct {
 	NTimes int    `json:"n_times"`
-	Hash   string `json:"hash"`
+	Hash   []byte `json:"hash"`
 }
 
-// TODO(cripplet): Implement multi-click hashing.
 func ClickHandler(resp http.ResponseWriter, req *http.Request) {
 	gameID := regexpMatchNamedGroups(clickRegex, req.URL.Path)["gameID"]
 	switch {
@@ -87,6 +88,19 @@ func ClickHandler(resp http.ResponseWriter, req *http.Request) {
 			resp.WriteHeader(http.StatusNotFound)
 			break
 		}
+
+		hash := s.Metadata.ClickHash
+		for i := 0; i < clickRequest.NTimes; i++ {
+			newHashBytes := sha256.Sum256(hash)
+			hash = newHashBytes[:]
+		}
+
+		if !bytes.Equal(clickRequest.Hash, hash) {
+			http.Error(resp, "Invalid hash value provided", http.StatusBadRequest)
+			break
+		}
+
+		s.Metadata.ClickHash = hash
 
 		g := cookie_clicker.NewGameState()
 		g.Load(s.GameData)

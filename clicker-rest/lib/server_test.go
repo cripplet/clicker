@@ -2,6 +2,7 @@ package cc_rest_lib
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"github.com/cripplet/clicker/db"
@@ -75,6 +76,8 @@ func TestNewGameHandlerInvalidMethod(t *testing.T) {
 func TestClickHandler(t *testing.T) {
 	cc_fb.ResetEnvironment(t)
 
+	nCookies := int(1e5)
+
 	req, _ := http.NewRequest(http.MethodPost, "/game/", nil)
 	respRec := httptest.NewRecorder()
 	http.HandlerFunc(NewGameHandler).ServeHTTP(respRec, req)
@@ -82,8 +85,16 @@ func TestClickHandler(t *testing.T) {
 	g := NewGameResponse{}
 	json.Unmarshal(respRec.Body.Bytes(), &g)
 
+	s, _, err := cc_fb.LoadGameState(getGameIDFromPath(g.Path))
+	h := s.Metadata.ClickHash
+	for i := 0; i < nCookies; i++ {
+		newHashBytes := sha256.Sum256(h)
+		h = newHashBytes[:]
+	}
+
 	clickRequest := ClickRequest{
-		NTimes: 10,
+		NTimes: nCookies,
+		Hash:   h,
 	}
 	clickRequestJSON, _ := json.Marshal(&clickRequest)
 
@@ -95,12 +106,43 @@ func TestClickHandler(t *testing.T) {
 		t.Errorf("Unexpected HTTP error code %d != %d", respRec.Result().StatusCode, http.StatusNoContent)
 	}
 
-	s, _, err := cc_fb.LoadGameState(getGameIDFromPath(g.Path))
+	s, _, err = cc_fb.LoadGameState(getGameIDFromPath(g.Path))
 	if err != nil {
 		t.Errorf("Unexpected error when loading game: %v", err)
 	}
 
 	if s.GameData.NCookies == 0 {
 		t.Error("Zero cookies when expecting more")
+	}
+}
+
+func TestClickHandlerInvalidHash(t *testing.T) {
+	cc_fb.ResetEnvironment(t)
+
+	req, _ := http.NewRequest(http.MethodPost, "/game/", nil)
+	respRec := httptest.NewRecorder()
+	http.HandlerFunc(NewGameHandler).ServeHTTP(respRec, req)
+
+	g := NewGameResponse{}
+	json.Unmarshal(respRec.Body.Bytes(), &g)
+
+	clickRequest := ClickRequest{
+		NTimes: 10,
+		Hash:   []byte("invalid-hash"),
+	}
+	clickRequestJSON, _ := json.Marshal(&clickRequest)
+
+	req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("/game/%s/cookie/click", getGameIDFromPath(g.Path)), bytes.NewReader(clickRequestJSON))
+	respRec = httptest.NewRecorder()
+	http.HandlerFunc(ClickHandler).ServeHTTP(respRec, req)
+
+	if respRec.Result().StatusCode != http.StatusBadRequest {
+		t.Errorf("Unexpected HTTP error code %d != %d", respRec.Result().StatusCode, http.StatusBadRequest)
+	}
+
+	s, _, _ := cc_fb.LoadGameState(getGameIDFromPath(g.Path))
+
+	if s.GameData.NCookies != 0 {
+		t.Error("Cookies found in game where none should be")
 	}
 }

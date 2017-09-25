@@ -20,6 +20,13 @@ type FBGameState struct {
 
 	// Calculated Game data.
 	GameObservables FBGameObservableData
+
+	// Metadata kept by the REST server.
+	Metadata FBGameMetadata
+}
+
+type FBGameMetadata struct {
+	ClickHash []byte `json:"click_hash"`
 }
 
 type FBGameObservableData struct {
@@ -39,6 +46,7 @@ type internalFBGameState struct {
 	Exist           bool                  `json:"exist"`
 	GameData        internalGameStateData `json:"data"`
 	GameObservables FBGameObservableData  `json:"observables"`
+	Metadata        FBGameMetadata        `json:"metadata"`
 }
 
 func toInternalFBGameState(s FBGameState) internalFBGameState {
@@ -59,6 +67,7 @@ func toInternalFBGameState(s FBGameState) internalFBGameState {
 		Exist:           s.Exist,
 		GameData:        internalData,
 		GameObservables: s.GameObservables,
+		Metadata:        s.Metadata,
 	}
 }
 
@@ -80,6 +89,7 @@ func fromInternalFBGameState(s internalFBGameState) FBGameState {
 		Exist:           s.Exist,
 		GameData:        gameData,
 		GameObservables: s.GameObservables,
+		Metadata:        s.Metadata,
 	}
 }
 
@@ -124,6 +134,7 @@ func newGameState() (FBGameState, error) {
 	}
 
 	i.ID = p.Name
+	i.Metadata.ClickHash = []byte(i.ID)
 
 	err = SaveGameState(fromInternalFBGameState(i), eTag)
 	if err != nil {
