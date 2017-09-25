@@ -11,10 +11,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"regexp"
+	"time"
 )
 
 var newGameRegex *regexp.Regexp = regexp.MustCompile(`^/game(/)?$`)
 var clickRegex *regexp.Regexp = regexp.MustCompile(`^/game/(?P<gameID>[\w-]*)/cookie/click(/)?$`)
+var mineRegex *regexp.Regexp = regexp.MustCompile(`^/game/(?P<gameID>[\w-]*)/cookie/mine(/)?$`)
 
 func regexpMatchNamedGroups(r *regexp.Regexp, s string) map[string]string {
 	ret := map[string]string{}
@@ -63,8 +65,8 @@ type ClickRequest struct {
 
 func ClickHandler(resp http.ResponseWriter, req *http.Request) {
 	gameID := regexpMatchNamedGroups(clickRegex, req.URL.Path)["gameID"]
-	switch {
-	case req.Method == http.MethodPost:
+	switch req.Method {
+	case http.MethodPost:
 		content, err := ioutil.ReadAll(req.Body)
 		if err != nil {
 			http.Error(resp, err.Error(), http.StatusInternalServerError)
@@ -108,7 +110,46 @@ func ClickHandler(resp http.ResponseWriter, req *http.Request) {
 			g.Click()
 		}
 		s.GameData = g.Dump()
-		cc_fb.SaveGameState(s, eTag)
+
+		err = cc_fb.SaveGameState(s, eTag)
+		if err != nil {
+			http.Error(resp, err.Error(), http.StatusPreconditionFailed)
+			break
+		}
+
+		resp.WriteHeader(http.StatusNoContent)
+		break
+	default:
+		resp.WriteHeader(http.StatusMethodNotAllowed)
+	}
+}
+
+func MineHandler(resp http.ResponseWriter, req *http.Request) {
+	gameID := regexpMatchNamedGroups(mineRegex, req.URL.Path)["gameID"]
+	switch {
+	case req.Method == http.MethodPost:
+		s, eTag, err := cc_fb.LoadGameState(gameID)
+		if err != nil {
+			http.Error(resp, err.Error(), http.StatusInternalServerError)
+			break
+		}
+
+		if !s.Exist {
+			resp.WriteHeader(http.StatusNotFound)
+			break
+		}
+
+		g := cookie_clicker.NewGameState()
+		g.Load(s.GameData)
+		g.MineCookies(s.Metadata.MineTime, time.Now())
+		s.GameData = g.Dump()
+
+		err = cc_fb.SaveGameState(s, eTag)
+		if err != nil {
+			http.Error(resp, err.Error(), http.StatusPreconditionFailed)
+			break
+		}
+
 		resp.WriteHeader(http.StatusNoContent)
 		break
 	default:
@@ -123,6 +164,9 @@ func GameRouter(resp http.ResponseWriter, req *http.Request) {
 		break
 	case clickRegex.MatchString(req.URL.Path):
 		ClickHandler(resp, req)
+		break
+	case mineRegex.MatchString(req.URL.Path):
+		MineHandler(resp, req)
 		break
 	}
 }

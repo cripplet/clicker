@@ -26,7 +26,8 @@ type FBGameState struct {
 }
 
 type FBGameMetadata struct {
-	ClickHash []byte `json:"click_hash"`
+	ClickHash []byte    `json:"click_hash"`
+	MineTime  time.Time `json:"mine_time"`
 }
 
 type FBGameObservableData struct {
@@ -135,6 +136,7 @@ func newGameState() (FBGameState, error) {
 
 	i.ID = p.Name
 	i.Metadata.ClickHash = []byte(i.ID)
+	i.Metadata.MineTime = time.Now()
 
 	err = SaveGameState(fromInternalFBGameState(i), eTag)
 	if err != nil {
@@ -176,7 +178,7 @@ func SaveGameState(g FBGameState, eTag string) error {
 		return err
 	}
 
-	_, statusCode, _, err := firebase_db.Put(
+	d, statusCode, _, err := firebase_db.Put(
 		cc_fb_config.CC_FIREBASE_CONFIG.Client,
 		fmt.Sprintf("%s/game/%s.json", cc_fb_config.CC_FIREBASE_CONFIG.ProjectPath, g.ID),
 		iJSON,

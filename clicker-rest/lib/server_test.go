@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/cripplet/clicker/db"
+	"github.com/cripplet/clicker/lib"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -144,5 +145,37 @@ func TestClickHandlerInvalidHash(t *testing.T) {
 
 	if s.GameData.NCookies != 0 {
 		t.Error("Cookies found in game where none should be")
+	}
+}
+
+func TestMineHandler(t *testing.T) {
+	cc_fb.ResetEnvironment(t)
+
+	req, _ := http.NewRequest(http.MethodPost, "/game/", nil)
+	respRec := httptest.NewRecorder()
+	http.HandlerFunc(NewGameHandler).ServeHTTP(respRec, req)
+
+	g := NewGameResponse{}
+	json.Unmarshal(respRec.Body.Bytes(), &g)
+
+	s, eTag, _ := cc_fb.LoadGameState(getGameIDFromPath(g.Path))
+	s.GameData.NBuildings[cookie_clicker.BUILDING_TYPE_MOUSE] = 1
+	cc_fb.SaveGameState(s, eTag)
+
+	req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("/game/%s/cookie/mine", getGameIDFromPath(g.Path)), nil)
+	respRec = httptest.NewRecorder()
+	http.HandlerFunc(MineHandler).ServeHTTP(respRec, req)
+
+	if respRec.Result().StatusCode != http.StatusNoContent {
+		t.Errorf("Unexpected HTTP error code %d != %d", respRec.Result().StatusCode, http.StatusNoContent)
+	}
+
+	s, _, err := cc_fb.LoadGameState(getGameIDFromPath(g.Path))
+	if err != nil {
+		t.Errorf("Unexpected error when loading game: %v", err)
+	}
+
+	if s.GameData.NCookies == 0 {
+		t.Error("Zero cookies when expecting more")
 	}
 }
