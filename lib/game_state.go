@@ -62,12 +62,14 @@ func NewGameState() *GameStateStruct {
 /* Public API */
 
 func (self *GameStateStruct) Load(d GameStateData) error {
+	self.loadBuildings(BUILDINGS_LOOKUP)
+	self.loadUpgrades(UPGRADES_LOOKUP)
+
 	err := self.loadData(d)
 	if err != nil {
 		return err
 	}
-	self.loadBuildings(BUILDINGS_LOOKUP)
-	self.loadUpgrades(UPGRADES_LOOKUP)
+
 	self.loadCookiesPerClickRef(COOKIES_PER_CLICK_LOOKUP)
 
 	self.setCookiesPerClick(self.calculateCookiesPerClick())

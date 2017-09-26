@@ -31,8 +31,10 @@ type FBGameMetadata struct {
 }
 
 type FBGameObservableData struct {
-	CookiesPerClick float64 `json:"cookies_per_click"`
-	CPS             float64 `json:"cps"`
+	CookiesPerClick float64            `json:"cookies_per_click"`
+	CPS             float64            `json:"cps"`
+	BuildingCost    map[string]float64 `json:"building_cost"`
+	UpgradeCost     map[string]float64 `json:"upgrade_cost"`
 }
 
 type internalGameStateData struct {
@@ -104,9 +106,19 @@ func newGameState() (FBGameState, error) {
 	d := cookie_clicker.NewGameStateData()
 	g := cookie_clicker.NewGameState()
 	g.Load(*d)
+	buildingCost := map[string]float64{}
+	for buildingType, building := range g.GetBuildings() {
+		buildingCost[cookie_clicker.BUILDING_TYPE_LOOKUP[buildingType]] = building.GetCost(g.GetNBuildings()[buildingType] + 1)
+	}
+	upgradeCost := map[string]float64{}
+	for upgradeID, upgrade := range g.GetUpgrades() {
+		upgradeCost[cookie_clicker.UPGRADE_ID_LOOKUP[upgradeID]] = upgrade.GetCost(g)
+	}
 	o := FBGameObservableData{
 		CookiesPerClick: g.GetCookiesPerClick(),
 		CPS:             g.GetCPS(n, n.Add(time.Second)),
+		BuildingCost:    buildingCost,
+		UpgradeCost:     upgradeCost,
 	}
 
 	s := FBGameState{
