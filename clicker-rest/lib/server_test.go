@@ -193,6 +193,8 @@ func TestBuyBuildingHandlerNonexistentBuilding(t *testing.T) {
 }
 
 func TestBuyBuildingHandlerInsufficientFunds(t *testing.T) {
+	cc_fb.ResetEnvironment(t)
+
 	req, _ := http.NewRequest(http.MethodPost, "/game/", nil)
 	respRec := httptest.NewRecorder()
 	http.HandlerFunc(NewGameHandler).ServeHTTP(respRec, req)
@@ -200,7 +202,7 @@ func TestBuyBuildingHandlerInsufficientFunds(t *testing.T) {
 	g := NewGameResponse{}
 	json.Unmarshal(respRec.Body.Bytes(), &g)
 
-	req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("/game/%s/building/mouse/", getGameIDFromPath(g.Path)), nil)
+	req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("/game/%s/building/%s/", getGameIDFromPath(g.Path), cookie_clicker.BUILDING_TYPE_LOOKUP[cookie_clicker.BUILDING_TYPE_MOUSE]), nil)
 	respRec = httptest.NewRecorder()
 	http.HandlerFunc(BuyBuildingHandler).ServeHTTP(respRec, req)
 
@@ -210,6 +212,8 @@ func TestBuyBuildingHandlerInsufficientFunds(t *testing.T) {
 }
 
 func TestBuyBuildingHandler(t *testing.T) {
+	cc_fb.ResetEnvironment(t)
+
 	req, _ := http.NewRequest(http.MethodPost, "/game/", nil)
 	respRec := httptest.NewRecorder()
 	http.HandlerFunc(NewGameHandler).ServeHTTP(respRec, req)
@@ -238,5 +242,70 @@ func TestBuyBuildingHandler(t *testing.T) {
 	s, _, _ = cc_fb.LoadGameState(getGameIDFromPath(g.Path))
 	if s.GameData.NBuildings[cookie_clicker.BUILDING_TYPE_MOUSE] != 1 {
 		t.Errorf("Game state does not reflect building bought: %d buildings found", s.GameData.NBuildings[cookie_clicker.BUILDING_TYPE_MOUSE])
+	}
+}
+
+func TestBuyUpgradeHandlerNonexistentUpgrade(t *testing.T) {
+	cc_fb.ResetEnvironment(t)
+
+	req, _ := http.NewRequest(http.MethodPost, "/game/some-id/upgrade/nonexistent-upgrade", nil)
+	respRec := httptest.NewRecorder()
+	http.HandlerFunc(BuyUpgradeHandler).ServeHTTP(respRec, req)
+
+	if respRec.Result().StatusCode != http.StatusNotFound {
+		t.Errorf("Unexpected HTTP error code %d != %d", respRec.Result().StatusCode, http.StatusNotFound)
+	}
+}
+
+func TestBuyUpgradeHandlerInsufficientHandler(t *testing.T) {
+	cc_fb.ResetEnvironment(t)
+
+	req, _ := http.NewRequest(http.MethodPost, "/game/", nil)
+	respRec := httptest.NewRecorder()
+	http.HandlerFunc(NewGameHandler).ServeHTTP(respRec, req)
+
+	g := NewGameResponse{}
+	json.Unmarshal(respRec.Body.Bytes(), &g)
+
+	req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("/game/%s/upgrade/%s/", getGameIDFromPath(g.Path), cookie_clicker.UPGRADE_ID_LOOKUP[cookie_clicker.UPGRADE_ID_REINFORCED_INDEX_FINGER]), nil)
+	respRec = httptest.NewRecorder()
+	http.HandlerFunc(BuyUpgradeHandler).ServeHTTP(respRec, req)
+
+	if respRec.Result().StatusCode != http.StatusPaymentRequired {
+		t.Errorf("Unexpected HTTP error code %d != %d", respRec.Result().StatusCode, http.StatusPaymentRequired)
+	}
+}
+
+func TestBuyUpgradeHandler(t *testing.T) {
+	cc_fb.ResetEnvironment(t)
+
+	req, _ := http.NewRequest(http.MethodPost, "/game/", nil)
+	respRec := httptest.NewRecorder()
+	http.HandlerFunc(NewGameHandler).ServeHTTP(respRec, req)
+
+	g := NewGameResponse{}
+	json.Unmarshal(respRec.Body.Bytes(), &g)
+
+	s, eTag, _ := cc_fb.LoadGameState(getGameIDFromPath(g.Path))
+	game := cookie_clicker.NewGameState()
+	game.Load(s.GameData)
+	var i float64
+	for i = 0; i < game.GetUpgrades()[cookie_clicker.UPGRADE_ID_REINFORCED_INDEX_FINGER].GetCost(game); i++ {
+		game.Click()
+	}
+	s.GameData = game.Dump()
+	cc_fb.SaveGameState(s, eTag)
+
+	req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("/game/%s/upgrade/%s/", getGameIDFromPath(g.Path), cookie_clicker.UPGRADE_ID_LOOKUP[cookie_clicker.UPGRADE_ID_REINFORCED_INDEX_FINGER]), nil)
+	respRec = httptest.NewRecorder()
+	http.HandlerFunc(BuyUpgradeHandler).ServeHTTP(respRec, req)
+
+	if respRec.Result().StatusCode != http.StatusNoContent {
+		t.Errorf("Unexpected HTTP error code %d != %d", respRec.Result().StatusCode, http.StatusNoContent)
+	}
+
+	s, _, _ = cc_fb.LoadGameState(getGameIDFromPath(g.Path))
+	if !s.GameData.UpgradeStatus[cookie_clicker.UPGRADE_ID_REINFORCED_INDEX_FINGER] {
+		t.Error("Game state does not reflect upgrade bought")
 	}
 }
