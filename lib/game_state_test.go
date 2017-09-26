@@ -17,6 +17,13 @@ func TestMakeGameState(t *testing.T) {
 			t.Errorf("Expected %d instances of type %d, got %d", 0, i, s.nBuildings[i])
 		}
 	}
+
+	var u UpgradeID
+	for u = 0; u < UPGRADE_ID_ENUM_EOF; u++ {
+		if s.upgradeStatus[u] {
+			t.Errorf("Upgrade %d was bought when it shouldn't have been", u)
+		}
+	}
 }
 
 func TestAddCookies(t *testing.T) {
@@ -48,19 +55,35 @@ func TestSubtractCookies(t *testing.T) {
 func TestCalculateCPSNoUpgrades(t *testing.T) {
 	s := NewGameState()
 
-	s.loadBuildingCPSRef(BUILDING_CPS_LOOKUP)
+	b := NewBuilding(
+		"New Building",
+		nil,
+		1,
+	)
+	s.loadBuildings(map[BuildingType]BuildingInterface{
+		BUILDING_TYPE_MOUSE: b,
+	})
 	s.nBuildings[BUILDING_TYPE_MOUSE] = 1
 
 	cps := s.calculateCPS()
-	if cps != 0.2 {
-		t.Errorf("Expected total CPS %e, got %e", 0.2, cps)
+	if cps != 1 {
+		t.Errorf("Expected total CPS %e, got %e", 1, cps)
 	}
 }
 
 func TestCalculateCPSSimpleUpgrade(t *testing.T) {
 	s := NewGameState()
 
-	s.loadBuildingCPSRef(BUILDING_CPS_LOOKUP)
+	b := NewBuilding(
+		"New Building",
+		nil,
+		1,
+	)
+
+	s.loadBuildings(map[BuildingType]BuildingInterface{
+		BUILDING_TYPE_MOUSE: b,
+	})
+
 	s.nBuildings[BUILDING_TYPE_MOUSE] = 1
 	s.upgradeStatus[UPGRADE_ID_REINFORCED_INDEX_FINGER] = true
 
@@ -77,8 +100,8 @@ func TestCalculateCPSSimpleUpgrade(t *testing.T) {
 	})
 
 	cps := s.calculateCPS()
-	if s.calculateCPS() != 0.4 {
-		t.Errorf("Expected total CPS %e, got %e", 0.4, cps)
+	if s.calculateCPS() != 2 {
+		t.Errorf("Expected total CPS %e, got %e", 2, cps)
 	}
 }
 
@@ -161,7 +184,16 @@ func TestBuyUpgradeLocked(t *testing.T) {
 func TestBuyCPSUpgrade(t *testing.T) {
 	s := NewGameState()
 
-	s.loadBuildingCPSRef(BUILDING_CPS_LOOKUP)
+	b := NewBuilding(
+		"New Building",
+		nil,
+		1,
+	)
+
+	s.loadBuildings(map[BuildingType]BuildingInterface{
+		BUILDING_TYPE_MOUSE: b,
+	})
+
 	s.nBuildings[BUILDING_TYPE_MOUSE] = 1
 
 	u := NewBuildingUpgrade(
@@ -184,8 +216,8 @@ func TestBuyCPSUpgrade(t *testing.T) {
 		t.Error("BuyUpgrade reported upgrade was bought, but does not show up as bought.")
 	}
 
-	if s.GetCPS(start, end) != 0.4 {
-		t.Errorf("Expected CPS %e, got %e", 0.4, s.GetCPS(start, end))
+	if s.GetCPS(start, end) != 2 {
+		t.Errorf("Expected CPS %e, got %e", 2, s.GetCPS(start, end))
 	}
 }
 
@@ -219,18 +251,47 @@ func TestBuyCookiesPerClickUpgrade(t *testing.T) {
 
 func TestBuyBuildingFree(t *testing.T) {
 	s := NewGameState()
-	s.loadBuildingCPSRef(BUILDING_CPS_LOOKUP)
+
+	b := NewBuilding(
+		"New Building",
+		func(current int) float64 { return 0 },
+		1,
+	)
+
+	s.loadBuildings(map[BuildingType]BuildingInterface{
+		BUILDING_TYPE_MOUSE: b,
+	})
+
 	s.BuyBuilding(BUILDING_TYPE_MOUSE)
-	if s.GetCPS(start, end) != 0.2 {
-		t.Errorf("Expected CPS %e, got %e", 0.2, s.GetCPS(start, end))
+	if s.GetCPS(start, end) != 1 {
+		t.Errorf("Expected CPS %e, got %e", 1, s.GetCPS(start, end))
+	}
+}
+
+func TestBuyNonexistentBuilding(t *testing.T) {
+	s := NewGameState()
+
+	if s.BuyBuilding(BUILDING_TYPE_MOUSE) {
+		t.Error("Bought nonexistent building.")
+	}
+	if s.nBuildings[BUILDING_TYPE_MOUSE] != 0 {
+		t.Error("Building was bought even though BuyBuilding returned not bought.")
 	}
 }
 
 func TestBuyBuildingTooExpensive(t *testing.T) {
 	s := NewGameState()
-	s.loadBuildingCost(map[BuildingType]BuildingCostFunction{
-		BUILDING_TYPE_MOUSE: func(current int) float64 { return 1 },
+
+	b := NewBuilding(
+		"New Building",
+		func(current int) float64 { return 1 },
+		1,
+	)
+
+	s.loadBuildings(map[BuildingType]BuildingInterface{
+		BUILDING_TYPE_MOUSE: b,
 	})
+
 	if s.BuyBuilding(BUILDING_TYPE_MOUSE) {
 		t.Error("Expected to not buy building, but bought anyways.")
 	}
@@ -242,9 +303,17 @@ func TestBuyBuildingTooExpensive(t *testing.T) {
 func TestBuyBuildingAffordable(t *testing.T) {
 	s := NewGameState()
 	s.addCookies(1)
-	s.loadBuildingCost(map[BuildingType]BuildingCostFunction{
-		BUILDING_TYPE_MOUSE: func(current int) float64 { return 1 },
+
+	b := NewBuilding(
+		"New Building",
+		func(current int) float64 { return 1 },
+		1,
+	)
+
+	s.loadBuildings(map[BuildingType]BuildingInterface{
+		BUILDING_TYPE_MOUSE: b,
 	})
+
 	if !s.BuyBuilding(BUILDING_TYPE_MOUSE) {
 		t.Error("Expected to buy building, but couldn't.")
 	}
@@ -268,10 +337,6 @@ func TestGameStateLoad(t *testing.T) {
 	s.Load(GameStateData{
 		Version: GAME_STATE_VERSION,
 	})
-
-	if s.buildingCPSRef[BUILDING_TYPE_MOUSE] != BUILDING_CPS_LOOKUP[BUILDING_TYPE_MOUSE] {
-		t.Error("Could not load game state constants properly")
-	}
 }
 
 func TestGameStateLoadBadVersion(t *testing.T) {

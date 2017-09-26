@@ -178,7 +178,7 @@ func SaveGameState(g FBGameState, eTag string) error {
 		return err
 	}
 
-	d, statusCode, _, err := firebase_db.Put(
+	_, statusCode, _, err := firebase_db.Put(
 		cc_fb_config.CC_FIREBASE_CONFIG.Client,
 		fmt.Sprintf("%s/game/%s.json", cc_fb_config.CC_FIREBASE_CONFIG.ProjectPath, g.ID),
 		iJSON,

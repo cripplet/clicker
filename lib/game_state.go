@@ -24,10 +24,9 @@ type GameStateStruct struct {
 	cookiesPerClick float64
 	cps             float64
 	/* Immutable Fields */
-	buildingCPSRef     map[BuildingType]float64
 	cookiesPerClickRef float64
-	buildingCost       map[BuildingType]BuildingCostFunction
 	upgrades           map[UpgradeID]UpgradeInterface
+	buildings          map[BuildingType]BuildingInterface
 }
 
 func NewGameStateData() *GameStateData {
@@ -41,18 +40,15 @@ func NewGameStateData() *GameStateData {
 
 func NewGameState() *GameStateStruct {
 	g := GameStateStruct{
-		nBuildings:     make(map[BuildingType]int),
-		upgradeStatus:  make(map[UpgradeID]bool),
-		buildingCPSRef: make(map[BuildingType]float64),
-		buildingCost:   make(map[BuildingType]BuildingCostFunction),
-		upgrades:       make(map[UpgradeID]UpgradeInterface),
+		nBuildings:    make(map[BuildingType]int),
+		upgradeStatus: make(map[UpgradeID]bool),
+		upgrades:      make(map[UpgradeID]UpgradeInterface),
+		buildings:     make(map[BuildingType]BuildingInterface),
 	}
 
 	var i BuildingType
 	for i = 0; i < BUILDING_TYPE_ENUM_EOF; i++ {
 		g.nBuildings[i] = 0
-		g.buildingCPSRef[i] = 0
-		g.buildingCost[i] = func(current int) float64 { return 0 }
 	}
 
 	var j UpgradeID
@@ -70,9 +66,8 @@ func (self *GameStateStruct) Load(d GameStateData) error {
 	if err != nil {
 		return err
 	}
-	self.loadBuildingCost(BUILDING_COST_LOOKUP)
+	self.loadBuildings(BUILDINGS_LOOKUP)
 	self.loadUpgrades(UPGRADES_LOOKUP)
-	self.loadBuildingCPSRef(BUILDING_CPS_LOOKUP)
 	self.loadCookiesPerClickRef(COOKIES_PER_CLICK_LOOKUP)
 
 	self.setCookiesPerClick(self.calculateCookiesPerClick())
@@ -101,8 +96,8 @@ func (self *GameStateStruct) GetNBuildings() map[BuildingType]int {
 	return self.nBuildings
 }
 
-func (self *GameStateStruct) GetBuildingCost() map[BuildingType]BuildingCostFunction {
-	return self.buildingCost
+func (self *GameStateStruct) GetBuildings() map[BuildingType]BuildingInterface {
+	return self.buildings
 }
 
 func (self *GameStateStruct) GetUpgrades() map[UpgradeID]UpgradeInterface {
@@ -131,8 +126,8 @@ func (self *GameStateStruct) BuyUpgrade(id UpgradeID) bool { // TODO(cripplet): 
 }
 
 func (self *GameStateStruct) BuyBuilding(buildingType BuildingType) bool {
-	cost := self.buildingCost[buildingType](self.nBuildings[buildingType])
-	bought := self.subtractCookies(cost)
+	building, present := self.buildings[buildingType]
+	bought := present && self.subtractCookies(building.GetCost(self.nBuildings[buildingType]+1))
 	if bought {
 		self.nBuildings[buildingType] += 1
 		self.setCPS(self.calculateCPS())
@@ -194,13 +189,13 @@ func (self *GameStateStruct) loadData(d GameStateData) error {
 	return nil
 }
 
-func (self *GameStateStruct) loadBuildingCost(c map[BuildingType]BuildingCostFunction) {
-	for buildingType := range self.buildingCost {
-		self.buildingCost[buildingType] = func(current int) float64 { return 0 }
+func (self *GameStateStruct) loadBuildings(b map[BuildingType]BuildingInterface) {
+	for buildingType := range self.buildings {
+		delete(self.buildings, buildingType)
 	}
 
-	for buildingType, buildingCostFunction := range c {
-		self.buildingCost[buildingType] = buildingCostFunction
+	for buildingType, buildingInterface := range b {
+		self.buildings[buildingType] = buildingInterface
 	}
 }
 
@@ -218,16 +213,6 @@ func (self *GameStateStruct) loadCookiesPerClickRef(c float64) {
 	self.cookiesPerClickRef = c
 }
 
-func (self *GameStateStruct) loadBuildingCPSRef(b map[BuildingType]float64) {
-	for buildingType := range self.buildingCPSRef {
-		self.buildingCPSRef[buildingType] = 0
-	}
-
-	for buildingType, buildingCPSRef := range b {
-		self.buildingCPSRef[buildingType] = buildingCPSRef
-	}
-}
-
 func (self *GameStateStruct) calculateCookiesPerClick() float64 {
 	cookiesPerClickCopy := self.cookiesPerClickRef
 	for upgradeID, bought := range self.upgradeStatus {
@@ -241,8 +226,8 @@ func (self *GameStateStruct) calculateCookiesPerClick() float64 {
 
 func (self *GameStateStruct) calculateCPS() float64 {
 	buildingCPSRefCopy := make(map[BuildingType]float64)
-	for buildingType, buildingTypeCPS := range self.buildingCPSRef {
-		buildingCPSRefCopy[buildingType] = buildingTypeCPS
+	for buildingType, building := range self.buildings {
+		buildingCPSRefCopy[buildingType] = building.GetCPS()
 	}
 
 	boughtUpgrades := make([]UpgradeInterface, 0)
