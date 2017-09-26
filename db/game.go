@@ -100,12 +100,9 @@ type PostID struct {
 	Name string `json:"name"`
 }
 
-func newGameState() (FBGameState, error) {
+func GenerateFBGameObservableData(g *cookie_clicker.GameStateStruct) FBGameObservableData {
 	n := time.Now()
 
-	d := cookie_clicker.NewGameStateData()
-	g := cookie_clicker.NewGameState()
-	g.Load(*d)
 	buildingCost := map[string]float64{}
 	for buildingType, building := range g.GetBuildings() {
 		buildingCost[cookie_clicker.BUILDING_TYPE_LOOKUP[buildingType]] = building.GetCost(g.GetNBuildings()[buildingType] + 1)
@@ -120,11 +117,18 @@ func newGameState() (FBGameState, error) {
 		BuildingCost:    buildingCost,
 		UpgradeCost:     upgradeCost,
 	}
+	return o
+}
+
+func newGameState() (FBGameState, error) {
+	d := cookie_clicker.NewGameStateData()
+	g := cookie_clicker.NewGameState()
+	g.Load(*d)
 
 	s := FBGameState{
 		Exist:           true,
 		GameData:        *d,
-		GameObservables: o,
+		GameObservables: GenerateFBGameObservableData(g),
 	}
 
 	i := toInternalFBGameState(s)

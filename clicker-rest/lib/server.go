@@ -17,6 +17,7 @@ import (
 var newGameRegex *regexp.Regexp = regexp.MustCompile(`^/game(/)?$`)
 var clickRegex *regexp.Regexp = regexp.MustCompile(`^/game/(?P<gameID>[\w-]*)/cookie/click(/)?$`)
 var mineRegex *regexp.Regexp = regexp.MustCompile(`^/game/(?P<gameID>[\w-]*)/cookie/mine(/)?$`)
+var buyBuildingRegex *regexp.Regexp = regexp.MustCompile(`^/game/(?P<gameID>[\w-]*)/building/(?P<buildingType>[\w-]*)(/)?$`)
 
 func regexpMatchNamedGroups(r *regexp.Regexp, s string) map[string]string {
 	ret := map[string]string{}
@@ -126,8 +127,8 @@ func ClickHandler(resp http.ResponseWriter, req *http.Request) {
 
 func MineHandler(resp http.ResponseWriter, req *http.Request) {
 	gameID := regexpMatchNamedGroups(mineRegex, req.URL.Path)["gameID"]
-	switch {
-	case req.Method == http.MethodPost:
+	switch req.Method {
+	case http.MethodPost:
 		s, eTag, err := cc_fb.LoadGameState(gameID)
 		if err != nil {
 			http.Error(resp, err.Error(), http.StatusInternalServerError)
@@ -157,6 +158,48 @@ func MineHandler(resp http.ResponseWriter, req *http.Request) {
 	}
 }
 
+func BuyBuildingHandler(resp http.ResponseWriter, req *http.Request) {
+	gameID := regexpMatchNamedGroups(buyBuildingRegex, req.URL.Path)["gameID"]
+	buildingType, present := cookie_clicker.BUILDING_TYPE_REVERSE_LOOKUP[regexpMatchNamedGroups(buyBuildingRegex, req.URL.Path)["buildingType"]]
+	if !present {
+		resp.WriteHeader(http.StatusNotFound)
+		return
+	}
+	switch req.Method {
+	case http.MethodPost:
+		s, eTag, err := cc_fb.LoadGameState(gameID)
+		if err != nil {
+			http.Error(resp, err.Error(), http.StatusInternalServerError)
+			break
+		}
+
+		if !s.Exist {
+			resp.WriteHeader(http.StatusNotFound)
+			break
+		}
+
+		g := cookie_clicker.NewGameState()
+		g.Load(s.GameData)
+		if !g.BuyBuilding(buildingType) {
+			resp.WriteHeader(http.StatusPaymentRequired)
+			break
+		}
+		s.GameData = g.Dump()
+		s.GameObservables = cc_fb.GenerateFBGameObservableData(g)
+
+		err = cc_fb.SaveGameState(s, eTag)
+		if err != nil {
+			http.Error(resp, err.Error(), http.StatusPreconditionFailed)
+			break
+		}
+
+		resp.WriteHeader(http.StatusNoContent)
+		break
+	default:
+		resp.WriteHeader(http.StatusMethodNotAllowed)
+	}
+}
+
 func GameRouter(resp http.ResponseWriter, req *http.Request) {
 	switch {
 	case newGameRegex.MatchString(req.URL.Path):
@@ -167,6 +210,9 @@ func GameRouter(resp http.ResponseWriter, req *http.Request) {
 		break
 	case mineRegex.MatchString(req.URL.Path):
 		MineHandler(resp, req)
+		break
+	case buyBuildingRegex.MatchString(req.URL.Path):
+		BuyBuildingHandler(resp, req)
 		break
 	}
 }

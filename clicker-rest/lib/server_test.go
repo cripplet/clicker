@@ -99,7 +99,7 @@ func TestClickHandler(t *testing.T) {
 	}
 	clickRequestJSON, _ := json.Marshal(&clickRequest)
 
-	req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("/game/%s/cookie/click", getGameIDFromPath(g.Path)), bytes.NewReader(clickRequestJSON))
+	req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("/game/%s/cookie/click/", getGameIDFromPath(g.Path)), bytes.NewReader(clickRequestJSON))
 	respRec = httptest.NewRecorder()
 	http.HandlerFunc(ClickHandler).ServeHTTP(respRec, req)
 
@@ -133,7 +133,7 @@ func TestClickHandlerInvalidHash(t *testing.T) {
 	}
 	clickRequestJSON, _ := json.Marshal(&clickRequest)
 
-	req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("/game/%s/cookie/click", getGameIDFromPath(g.Path)), bytes.NewReader(clickRequestJSON))
+	req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("/game/%s/cookie/click/", getGameIDFromPath(g.Path)), bytes.NewReader(clickRequestJSON))
 	respRec = httptest.NewRecorder()
 	http.HandlerFunc(ClickHandler).ServeHTTP(respRec, req)
 
@@ -162,7 +162,7 @@ func TestMineHandler(t *testing.T) {
 	s.GameData.NBuildings[cookie_clicker.BUILDING_TYPE_MOUSE] = 1
 	cc_fb.SaveGameState(s, eTag)
 
-	req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("/game/%s/cookie/mine", getGameIDFromPath(g.Path)), nil)
+	req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("/game/%s/cookie/mine/", getGameIDFromPath(g.Path)), nil)
 	respRec = httptest.NewRecorder()
 	http.HandlerFunc(MineHandler).ServeHTTP(respRec, req)
 
@@ -177,5 +177,66 @@ func TestMineHandler(t *testing.T) {
 
 	if s.GameData.NCookies == 0 {
 		t.Error("Zero cookies when expecting more")
+	}
+}
+
+func TestBuyBuildingHandlerNonexistentBuilding(t *testing.T) {
+	cc_fb.ResetEnvironment(t)
+
+	req, _ := http.NewRequest(http.MethodPost, "/game/some-id/building/nonexistent-building-type", nil)
+	respRec := httptest.NewRecorder()
+	http.HandlerFunc(BuyBuildingHandler).ServeHTTP(respRec, req)
+
+	if respRec.Result().StatusCode != http.StatusNotFound {
+		t.Errorf("Unexpected HTTP error code %d != %d", respRec.Result().StatusCode, http.StatusNotFound)
+	}
+}
+
+func TestBuyBuildingHandlerInsufficientFunds(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodPost, "/game/", nil)
+	respRec := httptest.NewRecorder()
+	http.HandlerFunc(NewGameHandler).ServeHTTP(respRec, req)
+
+	g := NewGameResponse{}
+	json.Unmarshal(respRec.Body.Bytes(), &g)
+
+	req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("/game/%s/building/mouse/", getGameIDFromPath(g.Path)), nil)
+	respRec = httptest.NewRecorder()
+	http.HandlerFunc(BuyBuildingHandler).ServeHTTP(respRec, req)
+
+	if respRec.Result().StatusCode != http.StatusPaymentRequired {
+		t.Errorf("Unexpected HTTP error code %d != %d", respRec.Result().StatusCode, http.StatusPaymentRequired)
+	}
+}
+
+func TestBuyBuildingHandler(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodPost, "/game/", nil)
+	respRec := httptest.NewRecorder()
+	http.HandlerFunc(NewGameHandler).ServeHTTP(respRec, req)
+
+	g := NewGameResponse{}
+	json.Unmarshal(respRec.Body.Bytes(), &g)
+
+	s, eTag, _ := cc_fb.LoadGameState(getGameIDFromPath(g.Path))
+	game := cookie_clicker.NewGameState()
+	game.Load(s.GameData)
+	var i float64
+	for i = 0; i < game.GetBuildings()[cookie_clicker.BUILDING_TYPE_MOUSE].GetCost(1); i++ {
+		game.Click()
+	}
+	s.GameData = game.Dump()
+	cc_fb.SaveGameState(s, eTag)
+
+	req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("/game/%s/building/%s/", getGameIDFromPath(g.Path), cookie_clicker.BUILDING_TYPE_LOOKUP[cookie_clicker.BUILDING_TYPE_MOUSE]), nil)
+	respRec = httptest.NewRecorder()
+	http.HandlerFunc(BuyBuildingHandler).ServeHTTP(respRec, req)
+
+	if respRec.Result().StatusCode != http.StatusNoContent {
+		t.Errorf("Unexpected HTTP error code %d != %d", respRec.Result().StatusCode, http.StatusNoContent)
+	}
+
+	s, _, _ = cc_fb.LoadGameState(getGameIDFromPath(g.Path))
+	if s.GameData.NBuildings[cookie_clicker.BUILDING_TYPE_MOUSE] != 1 {
+		t.Errorf("Game state does not reflect building bought: %d buildings found", s.GameData.NBuildings[cookie_clicker.BUILDING_TYPE_MOUSE])
 	}
 }
