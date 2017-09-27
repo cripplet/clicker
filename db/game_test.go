@@ -9,6 +9,42 @@ import (
 	"testing"
 )
 
+func TestToFromInternalFBGameObservableData(t *testing.T) {
+	cookiesPerClick := 1.0
+	cps := 2.0
+	buildingCost := 10.0
+	upgradeCost := 12.0
+
+	gameObservables := FBGameObservableData{
+		CookiesPerClick: cookiesPerClick,
+		CPS:             cps,
+		BuildingCost: map[cookie_clicker.BuildingType]float64{
+			cookie_clicker.BUILDING_TYPE_MOUSE: buildingCost,
+		},
+		UpgradeCost: map[cookie_clicker.UpgradeID]float64{
+			cookie_clicker.UPGRADE_ID_REINFORCED_INDEX_FINGER: upgradeCost,
+		},
+	}
+
+	internalGameObservables := internalFBGameObservableData{
+		CookiesPerClick: cookiesPerClick,
+		CPS:             cps,
+		BuildingCost: map[string]float64{
+			cookie_clicker.BUILDING_TYPE_LOOKUP[cookie_clicker.BUILDING_TYPE_MOUSE]: buildingCost,
+		},
+		UpgradeCost: map[string]float64{
+			cookie_clicker.UPGRADE_ID_LOOKUP[cookie_clicker.UPGRADE_ID_REINFORCED_INDEX_FINGER]: upgradeCost,
+		},
+	}
+
+	if !reflect.DeepEqual(toInternalFBGameObservableData(gameObservables), internalGameObservables) {
+		t.Errorf("Error converting to internal game observables")
+	}
+	if !reflect.DeepEqual(fromInternalFBGameObservableData(internalGameObservables), gameObservables) {
+		t.Errorf("Error converting from internal game observables")
+	}
+}
+
 func TestToFromInternalFBGameState(t *testing.T) {
 	version := "some-version"
 	nCookies := 10.0
@@ -16,7 +52,21 @@ func TestToFromInternalFBGameState(t *testing.T) {
 	upgradeBought := true
 	gameID := "some-id"
 	exist := true
+	cookiesPerClick := 1.0
+	cps := 2.0
+	buildingCost := 10.0
+	upgradeCost := 12.0
 
+	gameObservables := FBGameObservableData{
+		CookiesPerClick: cookiesPerClick,
+		CPS:             cps,
+		BuildingCost: map[cookie_clicker.BuildingType]float64{
+			cookie_clicker.BUILDING_TYPE_MOUSE: buildingCost,
+		},
+		UpgradeCost: map[cookie_clicker.UpgradeID]float64{
+			cookie_clicker.UPGRADE_ID_REINFORCED_INDEX_FINGER: upgradeCost,
+		},
+	}
 	gameData := cookie_clicker.GameStateData{
 		Version:  version,
 		NCookies: nCookies,
@@ -28,11 +78,22 @@ func TestToFromInternalFBGameState(t *testing.T) {
 		},
 	}
 	gameState := FBGameState{
-		ID:       gameID,
-		Exist:    exist,
-		GameData: gameData,
+		ID:              gameID,
+		Exist:           exist,
+		GameData:        gameData,
+		GameObservables: gameObservables,
 	}
 
+	internalGameObservables := internalFBGameObservableData{
+		CookiesPerClick: cookiesPerClick,
+		CPS:             cps,
+		BuildingCost: map[string]float64{
+			cookie_clicker.BUILDING_TYPE_LOOKUP[cookie_clicker.BUILDING_TYPE_MOUSE]: buildingCost,
+		},
+		UpgradeCost: map[string]float64{
+			cookie_clicker.UPGRADE_ID_LOOKUP[cookie_clicker.UPGRADE_ID_REINFORCED_INDEX_FINGER]: upgradeCost,
+		},
+	}
 	internalGameData := internalGameStateData{
 		Version:  version,
 		NCookies: nCookies,
@@ -44,9 +105,10 @@ func TestToFromInternalFBGameState(t *testing.T) {
 		},
 	}
 	internalGameState := internalFBGameState{
-		ID:       gameID,
-		Exist:    exist,
-		GameData: internalGameData,
+		ID:              gameID,
+		Exist:           exist,
+		GameData:        internalGameData,
+		GameObservables: internalGameObservables,
 	}
 
 	if !reflect.DeepEqual(toInternalFBGameState(gameState), internalGameState) {

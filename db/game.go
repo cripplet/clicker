@@ -53,7 +53,9 @@ type FBGameMetadata struct {
 	MineTime time.Time `json:"mine_time"`
 }
 
-// FBGameObservableData is calculated from the game and is read-only.
+// FBGameObservableData is calculated from the game and is read-only. As with
+// FBGameState, this is not the "true" JSON output as seen when pulling
+// from the database.
 type FBGameObservableData struct {
 	// Number of cookies added to the game per click.
 	CookiesPerClick float64 `json:"cookies_per_click"`
@@ -62,13 +64,54 @@ type FBGameObservableData struct {
 	CPS float64 `json:"cps"`
 
 	// The number of cookies necessary to buy a building of that type.
-	// The key is translated from the cookie_clicker.BuildingType enum, via
+	// The key of the JSON representation is translated from the
+	// cookie_clicker.BuildingType enum, via
 	// cookie_clicker.BUILDING_TYPE_LOOKUP.
-	BuildingCost map[string]float64 `json:"building_cost"`
+	BuildingCost map[cookie_clicker.BuildingType]float64 `json:"building_cost"`
 
-	// The number of cookies necessary to buy the given upgrade. The key is
-	// translated via cookie_clicker.UPGRADE_ID_LOOKUP.
-	UpgradeCost map[string]float64 `json:"upgrade_cost"`
+	// The number of cookies necessary to buy the given upgrade. The key of
+	// the JSON representation is translated via
+	// cookie_clicker.UPGRADE_ID_LOOKUP.
+	UpgradeCost map[cookie_clicker.UpgradeID]float64 `json:"upgrade_cost"`
+}
+
+type internalFBGameObservableData struct {
+	CookiesPerClick float64            `json:"cookies_per_click"`
+	CPS             float64            `json:"cps"`
+	BuildingCost    map[string]float64 `json:"building_cost"`
+	UpgradeCost     map[string]float64 `json:"upgrade_cost"`
+}
+
+func toInternalFBGameObservableData(d FBGameObservableData) internalFBGameObservableData {
+	internalData := internalFBGameObservableData{
+		CookiesPerClick: d.CookiesPerClick,
+		CPS:             d.CPS,
+		BuildingCost:    make(map[string]float64),
+		UpgradeCost:     make(map[string]float64),
+	}
+	for buildingType, cost := range d.BuildingCost {
+		internalData.BuildingCost[cookie_clicker.BUILDING_TYPE_LOOKUP[buildingType]] = cost
+	}
+	for upgradeID, cost := range d.UpgradeCost {
+		internalData.UpgradeCost[cookie_clicker.UPGRADE_ID_LOOKUP[upgradeID]] = cost
+	}
+	return internalData
+}
+
+func fromInternalFBGameObservableData(d internalFBGameObservableData) FBGameObservableData {
+	data := FBGameObservableData{
+		CookiesPerClick: d.CookiesPerClick,
+		CPS:             d.CPS,
+		BuildingCost:    make(map[cookie_clicker.BuildingType]float64),
+		UpgradeCost:     make(map[cookie_clicker.UpgradeID]float64),
+	}
+	for buildingTypeString, cost := range d.BuildingCost {
+		data.BuildingCost[cookie_clicker.BUILDING_TYPE_REVERSE_LOOKUP[buildingTypeString]] = cost
+	}
+	for upgradeIDString, cost := range d.UpgradeCost {
+		data.UpgradeCost[cookie_clicker.UPGRADE_ID_REVERSE_LOOKUP[upgradeIDString]] = cost
+	}
+	return data
 }
 
 type internalGameStateData struct {
@@ -79,11 +122,11 @@ type internalGameStateData struct {
 }
 
 type internalFBGameState struct {
-	ID              string                `json:"id"`
-	Exist           bool                  `json:"exist"`
-	GameData        internalGameStateData `json:"data"`
-	GameObservables FBGameObservableData  `json:"observables"`
-	Metadata        FBGameMetadata        `json:"metadata"`
+	ID              string                       `json:"id"`
+	Exist           bool                         `json:"exist"`
+	GameData        internalGameStateData        `json:"data"`
+	GameObservables internalFBGameObservableData `json:"observables"`
+	Metadata        FBGameMetadata               `json:"metadata"`
 }
 
 func toInternalFBGameState(s FBGameState) internalFBGameState {
@@ -103,7 +146,7 @@ func toInternalFBGameState(s FBGameState) internalFBGameState {
 		ID:              s.ID,
 		Exist:           s.Exist,
 		GameData:        internalData,
-		GameObservables: s.GameObservables,
+		GameObservables: toInternalFBGameObservableData(s.GameObservables),
 		Metadata:        s.Metadata,
 	}
 }
@@ -125,7 +168,7 @@ func fromInternalFBGameState(s internalFBGameState) FBGameState {
 		ID:              s.ID,
 		Exist:           s.Exist,
 		GameData:        gameData,
-		GameObservables: s.GameObservables,
+		GameObservables: fromInternalFBGameObservableData(s.GameObservables),
 		Metadata:        s.Metadata,
 	}
 }
@@ -139,13 +182,13 @@ type postID struct {
 func GenerateFBGameObservableData(g *cookie_clicker.GameStateStruct) FBGameObservableData {
 	n := time.Now()
 
-	buildingCost := map[string]float64{}
+	buildingCost := map[cookie_clicker.BuildingType]float64{}
 	for buildingType, building := range g.GetBuildings() {
-		buildingCost[cookie_clicker.BUILDING_TYPE_LOOKUP[buildingType]] = building.GetCost(g.GetNBuildings()[buildingType] + 1)
+		buildingCost[buildingType] = building.GetCost(g.GetNBuildings()[buildingType] + 1)
 	}
-	upgradeCost := map[string]float64{}
+	upgradeCost := map[cookie_clicker.UpgradeID]float64{}
 	for upgradeID, upgrade := range g.GetUpgrades() {
-		upgradeCost[cookie_clicker.UPGRADE_ID_LOOKUP[upgradeID]] = upgrade.GetCost(g)
+		upgradeCost[upgradeID] = upgrade.GetCost(g)
 	}
 	o := FBGameObservableData{
 		CookiesPerClick: g.GetCookiesPerClick(),
