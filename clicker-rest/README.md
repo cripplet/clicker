@@ -10,5 +10,5 @@ go run server.go \
     --environment=(dev|prod) &
 
 wget --post-data='' localhost:8080/game
-wget --post-data='{"n_times": 1000}' localhost:8080/game/generated-game-id/cookie/click
+wget --post-data='' localhost:8080/game/generated-game-id/cookie/mine
 ```

@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"github.com/cripplet/clicker/db"
+	"github.com/cripplet/clicker/db/config"
 	"github.com/cripplet/clicker/lib"
 	"net"
 	"net/http"
@@ -307,5 +309,14 @@ func TestBuyUpgradeHandler(t *testing.T) {
 	s, _, _ = cc_fb.LoadGameState(getGameIDFromPath(g.Path))
 	if !s.GameData.UpgradeStatus[cookie_clicker.UPGRADE_ID_REINFORCED_INDEX_FINGER] {
 		t.Error("Game state does not reflect upgrade bought")
+	}
+}
+
+func init() {
+	flag.Parse()
+
+	cc_fb_config.SetCCFirebaseConfig()
+	if cc_fb_config.CC_FIREBASE_CONFIG.Environment != cc_fb_config.DEV {
+		panic(fmt.Sprintf("Firebase environment is not %s", cc_fb_config.ENVIRONMENT_TYPE_LOOKUP[cc_fb_config.DEV]))
 	}
 }

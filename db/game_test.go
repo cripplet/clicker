@@ -1,6 +1,7 @@
 package cc_fb
 
 import (
+	"flag"
 	"fmt"
 	"github.com/cripplet/clicker/db/config"
 	"github.com/cripplet/clicker/lib"
@@ -112,6 +113,9 @@ func TestSaveGame(t *testing.T) {
 }
 
 func init() {
+	flag.Parse()
+
+	cc_fb_config.SetCCFirebaseConfig()
 	if cc_fb_config.CC_FIREBASE_CONFIG.Environment != cc_fb_config.DEV {
 		panic(fmt.Sprintf("Firebase environment is not %s", cc_fb_config.ENVIRONMENT_TYPE_LOOKUP[cc_fb_config.DEV]))
 	}
