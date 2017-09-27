@@ -1,4 +1,5 @@
 // Package cc_fb handles CookieClicker game state representation in the Firebase DB.
+//
 // TODO(cripplet): Move to github.com/cripplet/clicker-rest/db.
 package cc_fb
 
