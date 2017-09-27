@@ -10,6 +10,7 @@ func TestMakeBuilding(t *testing.T) {
 
 	b := newStandardBuilding(
 		name,
+		"",
 		nil,
 		cps,
 	)

@@ -1,6 +1,5 @@
-db
+CookieClicker REST Server
 ====
-Database Connector for Cookie Clicker
 
 ```golang
 go test \

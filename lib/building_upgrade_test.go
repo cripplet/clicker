@@ -9,6 +9,7 @@ func TestMakeSimpleUpgrade(t *testing.T) {
 	u := newBuildingUpgrade(
 		BUILDING_TYPE_MOUSE,
 		"New Upgrade",
+		"",
 		100,
 		2,
 		0,
@@ -35,6 +36,7 @@ func TestSimpleUpgradeIsUnlocked(t *testing.T) {
 	u := newBuildingUpgrade(
 		BUILDING_TYPE_MOUSE,
 		"New Upgrade",
+		"",
 		100,
 		2,
 		1,

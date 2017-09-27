@@ -57,6 +57,7 @@ func TestCalculateCPSNoUpgrades(t *testing.T) {
 
 	b := newStandardBuilding(
 		"New Building",
+		"",
 		nil,
 		1,
 	)
@@ -76,6 +77,7 @@ func TestCalculateCPSSimpleUpgrade(t *testing.T) {
 
 	b := newStandardBuilding(
 		"New Building",
+		"",
 		nil,
 		1,
 	)
@@ -90,6 +92,7 @@ func TestCalculateCPSSimpleUpgrade(t *testing.T) {
 	u := newBuildingUpgrade(
 		BUILDING_TYPE_MOUSE,
 		"New Upgrade",
+		"",
 		0,
 		2,
 		0,
@@ -122,6 +125,7 @@ func TestDoubleBuyUpgrade(t *testing.T) {
 	u := newBuildingUpgrade(
 		BUILDING_TYPE_MOUSE,
 		"New Upgrade",
+		"",
 		100,
 		2,
 		0,
@@ -147,6 +151,7 @@ func TestBuyUpgradeTooExpensive(t *testing.T) {
 	u := newBuildingUpgrade(
 		BUILDING_TYPE_MOUSE,
 		"New Upgrade",
+		"",
 		100,
 		2,
 		0,
@@ -167,6 +172,7 @@ func TestBuyUpgradeLocked(t *testing.T) {
 	u := newBuildingUpgrade(
 		BUILDING_TYPE_MOUSE,
 		"New Upgrade",
+		"",
 		0,
 		2,
 		1,
@@ -186,6 +192,7 @@ func TestBuyCPSUpgrade(t *testing.T) {
 
 	b := newStandardBuilding(
 		"New Building",
+		"",
 		nil,
 		1,
 	)
@@ -199,6 +206,7 @@ func TestBuyCPSUpgrade(t *testing.T) {
 	u := newBuildingUpgrade(
 		BUILDING_TYPE_MOUSE,
 		"New Upgrade",
+		"",
 		0,
 		2,
 		0,
@@ -228,6 +236,7 @@ func TestBuyCookiesPerClickUpgrade(t *testing.T) {
 
 	u := newBasicClickUpgrade(
 		"New Upgrade",
+		"",
 		0,
 		3,
 	)
@@ -254,6 +263,7 @@ func TestBuyBuildingFree(t *testing.T) {
 
 	b := newStandardBuilding(
 		"New Building",
+		"",
 		func(current int) float64 { return 0 },
 		1,
 	)
@@ -284,6 +294,7 @@ func TestBuyBuildingTooExpensive(t *testing.T) {
 
 	b := newStandardBuilding(
 		"New Building",
+		"",
 		func(current int) float64 { return 1 },
 		1,
 	)
@@ -306,6 +317,7 @@ func TestBuyBuildingAffordable(t *testing.T) {
 
 	b := newStandardBuilding(
 		"New Building",
+		"",
 		func(current int) float64 { return 1 },
 		1,
 	)

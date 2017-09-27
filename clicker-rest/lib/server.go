@@ -70,17 +70,17 @@ func NewGameHandler(resp http.ResponseWriter, req *http.Request) {
 
 type ClickRequest struct {
 	// Number of times the cookie is clicked by the user.
-	NTimes int    `json:"n_times"`
+	NTimes int `json:"n_times"`
 
 	// Byte array of the correct validation SHA256 hash
 	// associated with clicking the cookie NTimes.
 	//
 	// JSON will represent this as a Base64-encoded string,
-        // e.g. LUt2MTZEOXc3d3I2dVV0RExFS2Q=.
+	// e.g. LUt2MTZEOXc3d3I2dVV0RExFS2Q=.
 	//
 	// The current hash is provided in the game state. The correct Hash
 	// value can be calculated by hashing (unencoded byte array) NTimes.
-	Hash   []byte `json:"hash"`
+	Hash []byte `json:"hash"`
 }
 
 // ClickHandler mutates the given game by incrementing the number of cookies

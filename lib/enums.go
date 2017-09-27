@@ -10,6 +10,7 @@ const (
 )
 
 var BUILDING_TYPE_LOOKUP map[BuildingType]string = map[BuildingType]string{
+	// TODO(cripplet): Rename BUILDING_TYPE_MOUSE -> BUILDING_TYPE_CURSOR
 	BUILDING_TYPE_MOUSE: "mouse",
 }
 

@@ -2,8 +2,6 @@ package cookie_clicker
 
 // UpgradeInterface is the public API for all upgrades.
 //
-// TOOD(cripplet): Add GetDescription.
-//
 // TODO(cripplet): Add GetCPSMultiplier.
 //
 // TODO(cripplet): Change GetBuildingMultiplier -> GetBuildingMultipliers(...) map[BuildingType]float64
@@ -12,6 +10,7 @@ package cookie_clicker
 type UpgradeInterface interface {
 	GetName() string
 	GetCost(g *GameStateStruct) float64
+	GetDescription() string
 
 	// Returns true if the player can buy the upgrade.
 	GetIsUnlocked(g *GameStateStruct) bool

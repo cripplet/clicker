@@ -3,17 +3,23 @@ package cookie_clicker
 type basicClickUpgrade struct {
 	UpgradeInterface
 	name            string
+	description     string
 	cost            float64
 	clickMultiplier float64
 }
 
-func newBasicClickUpgrade(n string, c float64, m float64) *basicClickUpgrade {
+func newBasicClickUpgrade(n string, d string, c float64, m float64) *basicClickUpgrade {
 	u := basicClickUpgrade{
 		name:            n,
+		description:     d,
 		cost:            c,
 		clickMultiplier: m,
 	}
 	return &u
+}
+
+func (self *basicClickUpgrade) GetDescription() string {
+	return self.description
 }
 
 func (self *basicClickUpgrade) GetIsUnlocked(g *GameStateStruct) bool {
