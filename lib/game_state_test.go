@@ -55,7 +55,7 @@ func TestSubtractCookies(t *testing.T) {
 func TestCalculateCPSNoUpgrades(t *testing.T) {
 	s := NewGameState()
 
-	b := NewBuilding(
+	b := newStandardBuilding(
 		"New Building",
 		nil,
 		1,
@@ -74,7 +74,7 @@ func TestCalculateCPSNoUpgrades(t *testing.T) {
 func TestCalculateCPSSimpleUpgrade(t *testing.T) {
 	s := NewGameState()
 
-	b := NewBuilding(
+	b := newStandardBuilding(
 		"New Building",
 		nil,
 		1,
@@ -87,7 +87,7 @@ func TestCalculateCPSSimpleUpgrade(t *testing.T) {
 	s.nBuildings[BUILDING_TYPE_MOUSE] = 1
 	s.upgradeStatus[UPGRADE_ID_REINFORCED_INDEX_FINGER] = true
 
-	u := NewBuildingUpgrade(
+	u := newBuildingUpgrade(
 		BUILDING_TYPE_MOUSE,
 		"New Upgrade",
 		0,
@@ -119,7 +119,7 @@ func TestBuyNonexistentUpgrade(t *testing.T) {
 func TestDoubleBuyUpgrade(t *testing.T) {
 	s := NewGameState()
 
-	u := NewBuildingUpgrade(
+	u := newBuildingUpgrade(
 		BUILDING_TYPE_MOUSE,
 		"New Upgrade",
 		100,
@@ -144,7 +144,7 @@ func TestDoubleBuyUpgrade(t *testing.T) {
 func TestBuyUpgradeTooExpensive(t *testing.T) {
 	s := NewGameState()
 
-	u := NewBuildingUpgrade(
+	u := newBuildingUpgrade(
 		BUILDING_TYPE_MOUSE,
 		"New Upgrade",
 		100,
@@ -164,7 +164,7 @@ func TestBuyUpgradeTooExpensive(t *testing.T) {
 func TestBuyUpgradeLocked(t *testing.T) {
 	s := NewGameState()
 
-	u := NewBuildingUpgrade(
+	u := newBuildingUpgrade(
 		BUILDING_TYPE_MOUSE,
 		"New Upgrade",
 		0,
@@ -184,7 +184,7 @@ func TestBuyUpgradeLocked(t *testing.T) {
 func TestBuyCPSUpgrade(t *testing.T) {
 	s := NewGameState()
 
-	b := NewBuilding(
+	b := newStandardBuilding(
 		"New Building",
 		nil,
 		1,
@@ -196,7 +196,7 @@ func TestBuyCPSUpgrade(t *testing.T) {
 
 	s.nBuildings[BUILDING_TYPE_MOUSE] = 1
 
-	u := NewBuildingUpgrade(
+	u := newBuildingUpgrade(
 		BUILDING_TYPE_MOUSE,
 		"New Upgrade",
 		0,
@@ -226,7 +226,7 @@ func TestBuyCookiesPerClickUpgrade(t *testing.T) {
 
 	s.loadCookiesPerClickRef(2)
 
-	u := NewBasicClickUpgrade(
+	u := newBasicClickUpgrade(
 		"New Upgrade",
 		0,
 		3,
@@ -252,7 +252,7 @@ func TestBuyCookiesPerClickUpgrade(t *testing.T) {
 func TestBuyBuildingFree(t *testing.T) {
 	s := NewGameState()
 
-	b := NewBuilding(
+	b := newStandardBuilding(
 		"New Building",
 		func(current int) float64 { return 0 },
 		1,
@@ -282,7 +282,7 @@ func TestBuyNonexistentBuilding(t *testing.T) {
 func TestBuyBuildingTooExpensive(t *testing.T) {
 	s := NewGameState()
 
-	b := NewBuilding(
+	b := newStandardBuilding(
 		"New Building",
 		func(current int) float64 { return 1 },
 		1,
@@ -304,7 +304,7 @@ func TestBuyBuildingAffordable(t *testing.T) {
 	s := NewGameState()
 	s.addCookies(1)
 
-	b := NewBuilding(
+	b := newStandardBuilding(
 		"New Building",
 		func(current int) float64 { return 1 },
 		1,

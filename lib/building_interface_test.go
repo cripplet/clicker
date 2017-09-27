@@ -8,7 +8,7 @@ func TestMakeBuilding(t *testing.T) {
 	name := "some-building"
 	cps := 1.0
 
-	b := NewBuilding(
+	b := newStandardBuilding(
 		name,
 		nil,
 		cps,

@@ -1,6 +1,6 @@
 package cookie_clicker
 
-type BuildingUpgrade struct {
+type buildingUpgrade struct {
 	UpgradeInterface
 	buildingType       BuildingType
 	name               string
@@ -9,8 +9,8 @@ type BuildingUpgrade struct {
 	minimumBuildings   int
 }
 
-func NewBuildingUpgrade(t BuildingType, n string, c float64, m float64, b int) *BuildingUpgrade {
-	u := BuildingUpgrade{
+func newBuildingUpgrade(t BuildingType, n string, c float64, m float64, b int) *buildingUpgrade {
+	u := buildingUpgrade{
 		buildingType:       t,
 		name:               n,
 		cost:               c,
@@ -20,26 +20,26 @@ func NewBuildingUpgrade(t BuildingType, n string, c float64, m float64, b int) *
 	return &u
 }
 
-func (self *BuildingUpgrade) GetIsUnlocked(g *GameStateStruct) bool {
+func (self *buildingUpgrade) GetIsUnlocked(g *GameStateStruct) bool {
 	return (*g).GetNBuildings()[self.GetBuildingType()] >= self.minimumBuildings
 }
 
-func (self *BuildingUpgrade) GetCost(g *GameStateStruct) float64 {
+func (self *buildingUpgrade) GetCost(g *GameStateStruct) float64 {
 	return self.cost
 }
 
-func (self *BuildingUpgrade) GetName() string {
+func (self *buildingUpgrade) GetName() string {
 	return self.name
 }
 
-func (self *BuildingUpgrade) GetBuildingType() BuildingType {
+func (self *buildingUpgrade) GetBuildingType() BuildingType {
 	return self.buildingType
 }
 
-func (self *BuildingUpgrade) GetBuildingMultiplier(g *GameStateStruct) float64 {
+func (self *buildingUpgrade) GetBuildingMultiplier(g *GameStateStruct) float64 {
 	return self.buildingMultiplier
 }
 
-func (self *BuildingUpgrade) GetClickMultiplier(g *GameStateStruct) float64 {
+func (self *buildingUpgrade) GetClickMultiplier(g *GameStateStruct) float64 {
 	return 1
 }

@@ -6,7 +6,7 @@ import (
 
 func TestMakeSimpleUpgrade(t *testing.T) {
 	s := NewGameState()
-	u := NewBuildingUpgrade(
+	u := newBuildingUpgrade(
 		BUILDING_TYPE_MOUSE,
 		"New Upgrade",
 		100,
@@ -32,7 +32,7 @@ func TestMakeSimpleUpgrade(t *testing.T) {
 
 func TestSimpleUpgradeIsUnlocked(t *testing.T) {
 	s := NewGameState()
-	u := NewBuildingUpgrade(
+	u := newBuildingUpgrade(
 		BUILDING_TYPE_MOUSE,
 		"New Upgrade",
 		100,

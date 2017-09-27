@@ -1,14 +1,14 @@
 package cookie_clicker
 
-type BasicClickUpgrade struct {
+type basicClickUpgrade struct {
 	UpgradeInterface
 	name            string
 	cost            float64
 	clickMultiplier float64
 }
 
-func NewBasicClickUpgrade(n string, c float64, m float64) *BasicClickUpgrade {
-	u := BasicClickUpgrade{
+func newBasicClickUpgrade(n string, c float64, m float64) *basicClickUpgrade {
+	u := basicClickUpgrade{
 		name:            n,
 		cost:            c,
 		clickMultiplier: m,
@@ -16,26 +16,26 @@ func NewBasicClickUpgrade(n string, c float64, m float64) *BasicClickUpgrade {
 	return &u
 }
 
-func (self *BasicClickUpgrade) GetIsUnlocked(g *GameStateStruct) bool {
+func (self *basicClickUpgrade) GetIsUnlocked(g *GameStateStruct) bool {
 	return true
 }
 
-func (self *BasicClickUpgrade) GetCost(g *GameStateStruct) float64 {
+func (self *basicClickUpgrade) GetCost(g *GameStateStruct) float64 {
 	return self.cost
 }
 
-func (self *BasicClickUpgrade) GetName() string {
+func (self *basicClickUpgrade) GetName() string {
 	return self.name
 }
 
-func (self *BasicClickUpgrade) GetBuildingType() BuildingType {
+func (self *basicClickUpgrade) GetBuildingType() BuildingType {
 	return BUILDING_TYPE_ENUM_EOF
 }
 
-func (self *BasicClickUpgrade) GetBuildingMultiplier(g *GameStateStruct) float64 {
+func (self *basicClickUpgrade) GetBuildingMultiplier(g *GameStateStruct) float64 {
 	return 1
 }
 
-func (self *BasicClickUpgrade) GetClickMultiplier(g *GameStateStruct) float64 {
+func (self *basicClickUpgrade) GetClickMultiplier(g *GameStateStruct) float64 {
 	return self.clickMultiplier
 }

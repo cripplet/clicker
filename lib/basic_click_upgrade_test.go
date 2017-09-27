@@ -5,7 +5,7 @@ import (
 )
 
 func TestMakeBasicClickUpgrade(t *testing.T) {
-	u := NewBasicClickUpgrade(
+	u := newBasicClickUpgrade(
 		"Simple Click",
 		1,
 		2,

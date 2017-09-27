@@ -8,17 +8,17 @@ type BuildingInterface interface {
 	GetCPS() float64
 }
 
-type BuildingCostFunction func(target int) float64
+type buildingCostFunction func(target int) float64
 
-type Building struct {
+type standardBuilding struct {
 	BuildingInterface
 	name         string
-	costFunction BuildingCostFunction
+	costFunction buildingCostFunction
 	cps          float64
 }
 
-func NewBuilding(n string, c BuildingCostFunction, cps float64) *Building {
-	b := Building{
+func newStandardBuilding(n string, c buildingCostFunction, cps float64) *standardBuilding {
+	b := standardBuilding{
 		name:         n,
 		costFunction: c,
 		cps:          cps,
@@ -26,14 +26,14 @@ func NewBuilding(n string, c BuildingCostFunction, cps float64) *Building {
 	return &b
 }
 
-func (self *Building) GetName() string {
+func (self *standardBuilding) GetName() string {
 	return self.name
 }
 
-func (self *Building) GetCPS() float64 {
+func (self *standardBuilding) GetCPS() float64 {
 	return self.cps
 }
 
-func (self *Building) GetCost(target int) float64 {
+func (self *standardBuilding) GetCost(target int) float64 {
 	return self.costFunction(target)
 }
