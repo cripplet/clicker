@@ -182,7 +182,10 @@ type postID struct {
 }
 
 // GenerateFBGameObservableData will construct a representation of the
-// read-only game fields.
+// read-only game fields. Note that these fields may be slightly inaccurate,
+// e.g. CookiesPerClick may vary by time, and the client may fall out of sync
+// if they do not monitor the only source of truth regarding the number of
+// cookies in the bank (that is, the DB).
 func GenerateFBGameObservableData(g *cookie_clicker.GameStateStruct) FBGameObservableData {
 	n := time.Now()
 
@@ -195,7 +198,7 @@ func GenerateFBGameObservableData(g *cookie_clicker.GameStateStruct) FBGameObser
 		upgradeCost[upgradeID] = upgrade.GetCost(g)
 	}
 	o := FBGameObservableData{
-		CookiesPerClick: g.GetCookiesPerClick(),
+		CookiesPerClick: g.GetCookiesPerClick(time.Now()),
 		CPS:             g.GetCPS(n, n.Add(time.Second)),
 		BuildingCost:    buildingCost,
 		UpgradeCost:     upgradeCost,

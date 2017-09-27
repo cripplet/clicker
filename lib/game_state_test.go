@@ -253,8 +253,9 @@ func TestBuyCookiesPerClickUpgrade(t *testing.T) {
 		t.Error("BuyUpgrade reported upgrade was bought, but does not show up as bought.")
 	}
 
-	if s.GetCookiesPerClick() != 6 {
-		t.Errorf("Expected %e cookies per click, got %e", 6, s.GetCookiesPerClick())
+	n := time.Now()
+	if s.GetCookiesPerClick(n) != 6 {
+		t.Errorf("Expected %e cookies per click, got %e", 6, s.GetCookiesPerClick(n))
 	}
 }
 

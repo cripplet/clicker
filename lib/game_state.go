@@ -184,7 +184,7 @@ func (self *GameStateStruct) GetCPS(start time.Time, end time.Time) float64 {
 //
 // TODO(cripplet): Calculate timed buffs here by adding a list of time events
 // and add a time parameter to the function signature.
-func (self *GameStateStruct) GetCookiesPerClick() float64 {
+func (self *GameStateStruct) GetCookiesPerClick(clickTime time.Time) float64 {
 	return self.cookiesPerClick
 }
 
@@ -194,8 +194,8 @@ func (self *GameStateStruct) MineCookies(start time.Time, end time.Time) {
 }
 
 // Commit cookies from physical click contributions to the bank.
-func (self *GameStateStruct) Click() {
-	self.addCookies(self.GetCookiesPerClick())
+func (self *GameStateStruct) Click(clickTime time.Time) {
+	self.addCookies(self.GetCookiesPerClick(clickTime))
 }
 
 func (self *GameStateStruct) setCPS(cps float64) {

@@ -288,7 +288,7 @@ func TestBuildingHandler(t *testing.T) {
 	game.Load(s.GameData)
 	var i float64
 	for i = 0; i < game.GetBuildings()[cookie_clicker.BUILDING_TYPE_CURSOR].GetCost(1); i++ {
-		game.Click()
+		game.Click(time.Now())
 	}
 	s.GameData = game.Dump()
 	cc_fb.SaveGameState(s, eTag)
@@ -353,7 +353,7 @@ func TestUpgradeHandler(t *testing.T) {
 	game.Load(s.GameData)
 	var i float64
 	for i = 0; i < game.GetUpgrades()[cookie_clicker.UPGRADE_ID_REINFORCED_INDEX_FINGER].GetCost(game); i++ {
-		game.Click()
+		game.Click(time.Now())
 	}
 	s.GameData = game.Dump()
 	cc_fb.SaveGameState(s, eTag)

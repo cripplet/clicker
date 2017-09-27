@@ -140,8 +140,8 @@ func ClickHandler(resp http.ResponseWriter, req *http.Request) {
 		g := cookie_clicker.NewGameState()
 		g.Load(s.GameData)
 
-		for range clickRequest.Events {
-			g.Click()
+		for _, event := range clickRequest.Events {
+			g.Click(event)
 		}
 
 		s.Metadata.ClickHash = clickHash
