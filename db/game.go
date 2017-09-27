@@ -48,8 +48,12 @@ type FBGameMetadata struct {
 	// requests.
 	ClickHash []byte `json:"click_hash"`
 
-	// Last time that cookies added to the game due to CPS contributions
-	// have been calculated.
+	// Last time that cookies have been added to the game due to physical
+	// click contribution.
+	ClickTime time.Time `json:"click_time"`
+
+	// Last time that cookies have been added to the game due to CPS
+	// contributions have been calculated.
 	MineTime time.Time `json:"mine_time"`
 }
 
@@ -231,7 +235,10 @@ func newGameState() (FBGameState, error) {
 
 	i.ID = p.Name
 	i.Metadata.ClickHash = []byte(i.ID)
-	i.Metadata.MineTime = time.Now()
+
+	n := time.Now()
+	i.Metadata.ClickTime = n
+	i.Metadata.MineTime = n
 
 	err = SaveGameState(fromInternalFBGameState(i), eTag)
 	if err != nil {

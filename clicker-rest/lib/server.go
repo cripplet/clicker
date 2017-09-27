@@ -68,10 +68,7 @@ func NewGameHandler(resp http.ResponseWriter, req *http.Request) {
 	}
 }
 
-type ClickRequest struct {
-	// Number of times the cookie is clicked by the user.
-	NTimes int `json:"n_times"`
-
+type ClickEvent struct {
 	// Byte array of the correct validation SHA256 hash
 	// associated with clicking the cookie NTimes.
 	//
@@ -81,6 +78,16 @@ type ClickRequest struct {
 	// The current hash is provided in the game state. The correct Hash
 	// value can be calculated by hashing (unencoded byte array) NTimes.
 	Hash []byte `json:"hash"`
+
+	// Time that this click event occured.
+	ClickTime time.Time `json:"click_time"`
+}
+
+type ClickRequest struct {
+	// List of click events, where each each event's ClickTime is
+	// monotonically increasing
+	// (i.e. Clicks[i].ClickTime < Clicks[i + 1].ClickTime)
+	Clicks []ClickEvent `json:"clicks"`
 }
 
 // ClickHandler mutates the given game by incrementing the number of cookies
@@ -100,6 +107,7 @@ func ClickHandler(resp http.ResponseWriter, req *http.Request) {
 			break
 		}
 
+		fmt.Printf("%s", string(content))
 		clickRequest := ClickRequest{}
 		err = json.Unmarshal(content, &clickRequest)
 		if err != nil {
@@ -118,24 +126,32 @@ func ClickHandler(resp http.ResponseWriter, req *http.Request) {
 			break
 		}
 
+		g := cookie_clicker.NewGameState()
+		g.Load(s.GameData)
+
 		hash := s.Metadata.ClickHash
-		for i := 0; i < clickRequest.NTimes; i++ {
+		clickTime := s.Metadata.ClickTime
+		valid := true
+
+		for _, clickEvent := range clickRequest.Clicks {
 			newHashBytes := sha256.Sum256(hash)
 			hash = newHashBytes[:]
+			valid = valid && bytes.Equal(hash, clickEvent.Hash) && clickTime.Before(clickEvent.ClickTime)
+			if valid {
+				g.Click()
+			} else {
+				break
+			}
+			clickTime = clickEvent.ClickTime
 		}
-
-		if !bytes.Equal(clickRequest.Hash, hash) {
-			http.Error(resp, "Invalid hash value provided", http.StatusBadRequest)
+		if !valid {
+			resp.WriteHeader(http.StatusBadRequest)
 			break
 		}
 
 		s.Metadata.ClickHash = hash
+		s.Metadata.ClickTime = clickTime
 
-		g := cookie_clicker.NewGameState()
-		g.Load(s.GameData)
-		for i := 0; i < clickRequest.NTimes; i++ {
-			g.Click()
-		}
 		s.GameData = g.Dump()
 
 		err = cc_fb.SaveGameState(s, eTag)

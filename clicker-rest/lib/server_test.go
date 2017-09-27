@@ -14,6 +14,7 @@ import (
 	"net/http/httptest"
 	"regexp"
 	"testing"
+	"time"
 )
 
 func getGameIDFromPath(p string) string {
@@ -98,17 +99,21 @@ func TestClickHandler(t *testing.T) {
 	g := NewGameResponse{}
 	json.Unmarshal(respRec.Body.Bytes(), &g)
 
+	clickRequest := ClickRequest{
+		Clicks: []ClickEvent{},
+	}
+
 	s, _, err := cc_fb.LoadGameState(getGameIDFromPath(g.Path))
 	h := s.Metadata.ClickHash
 	for i := 0; i < nCookies; i++ {
 		newHashBytes := sha256.Sum256(h)
 		h = newHashBytes[:]
+		clickRequest.Clicks = append(clickRequest.Clicks, ClickEvent{
+			Hash:      h,
+			ClickTime: time.Now(),
+		})
 	}
 
-	clickRequest := ClickRequest{
-		NTimes: nCookies,
-		Hash:   h,
-	}
 	clickRequestJSON, _ := json.Marshal(&clickRequest)
 
 	req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("/game/%s/cookie/click/", getGameIDFromPath(g.Path)), bytes.NewReader(clickRequestJSON))
@@ -129,6 +134,42 @@ func TestClickHandler(t *testing.T) {
 	}
 }
 
+func TestClickHandlerInvalidTime(t *testing.T) {
+	n := time.Now()
+	cc_fb.ResetEnvironment(t)
+
+	req, _ := http.NewRequest(http.MethodPost, "/game/", nil)
+	respRec := httptest.NewRecorder()
+	http.HandlerFunc(NewGameHandler).ServeHTTP(respRec, req)
+
+	g := NewGameResponse{}
+	json.Unmarshal(respRec.Body.Bytes(), &g)
+
+	s, _, _ := cc_fb.LoadGameState(getGameIDFromPath(g.Path))
+	h := s.Metadata.ClickHash
+	newHashBytes := sha256.Sum256(h)
+	h = newHashBytes[:]
+
+	clickRequest := ClickRequest{
+		Clicks: []ClickEvent{
+			ClickEvent{
+				Hash:      h,
+				ClickTime: n,
+			},
+		},
+	}
+
+	clickRequestJSON, _ := json.Marshal(&clickRequest)
+
+	req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("/game/%s/cookie/click/", getGameIDFromPath(g.Path)), bytes.NewReader(clickRequestJSON))
+	respRec = httptest.NewRecorder()
+	http.HandlerFunc(ClickHandler).ServeHTTP(respRec, req)
+
+	if respRec.Result().StatusCode != http.StatusBadRequest {
+		t.Errorf("Unexpected HTTP error code %d != %d", respRec.Result().StatusCode, http.StatusBadRequest)
+	}
+}
+
 func TestClickHandlerInvalidHash(t *testing.T) {
 	cc_fb.ResetEnvironment(t)
 
@@ -140,8 +181,12 @@ func TestClickHandlerInvalidHash(t *testing.T) {
 	json.Unmarshal(respRec.Body.Bytes(), &g)
 
 	clickRequest := ClickRequest{
-		NTimes: 10,
-		Hash:   []byte("invalid-hash"),
+		Clicks: []ClickEvent{
+			ClickEvent{
+				Hash:      []byte("invalid-hash"),
+				ClickTime: time.Now(),
+			},
+		},
 	}
 	clickRequestJSON, _ := json.Marshal(&clickRequest)
 
