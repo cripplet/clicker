@@ -2,6 +2,9 @@ package cookie_clicker
 
 var COOKIES_PER_CLICK_LOOKUP float64 = 1
 
+// BuildingInterface is the public API for all buildings.
+//
+// TODO(minkezhang): Add GetDescription.
 type BuildingInterface interface {
 	GetName() string
 	GetCost(target int) float64

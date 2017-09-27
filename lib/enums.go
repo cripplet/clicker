@@ -12,6 +12,8 @@ const (
 var BUILDING_TYPE_LOOKUP map[BuildingType]string = map[BuildingType]string{
 	BUILDING_TYPE_MOUSE: "mouse",
 }
+
+// BUILDING_TYPE_REVERSE_LOOKUP is dynamically generated.
 var BUILDING_TYPE_REVERSE_LOOKUP map[string]BuildingType = map[string]BuildingType{}
 
 const (
@@ -23,6 +25,8 @@ const (
 var UPGRADE_ID_LOOKUP map[UpgradeID]string = map[UpgradeID]string{
 	UPGRADE_ID_REINFORCED_INDEX_FINGER: "reinforced-index-finger",
 }
+
+// UPGRADE_ID_REVERSE_LOOKUP is dynamically generated.
 var UPGRADE_ID_REVERSE_LOOKUP map[string]UpgradeID = map[string]UpgradeID{}
 
 func init() {

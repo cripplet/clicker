@@ -26,6 +26,7 @@ var EVENT_TYPE_LOOKUP map[EventType]string = map[EventType]string{
 	AUTH_REVOKED: "auth_revoked",
 }
 
+// EVENT_TYPE_REVERSE_LOOKUP is dynamically generated.
 var EVENT_TYPE_REVERSE_LOOKUP map[string]EventType = map[string]EventType{}
 
 // See https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events#Event_stream_format.

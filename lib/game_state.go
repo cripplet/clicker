@@ -1,3 +1,5 @@
+// Package cookie_clicker contains all data structs and functions used to
+// run a game of CookieClicker.
 package cookie_clicker
 
 import (
@@ -8,6 +10,8 @@ import (
 
 var GAME_STATE_VERSION string = "v0.01"
 
+// GameStateData is the library representation of the data necessary to import
+// and export a game.
 type GameStateData struct {
 	Version       string               `json:"version"`
 	NCookies      float64              `json:"n_cookies"`
@@ -15,18 +19,35 @@ type GameStateData struct {
 	UpgradeStatus map[UpgradeID]bool   `json:"upgrades"`
 }
 
+// GameStateStruct represents a game of CookieClicker.
 type GameStateStruct struct {
-	/* Imported Fields */
-	nCookies      float64
-	nBuildings    map[BuildingType]int
+	// Number of cookies the player currently owns. This imported from
+	// GameStateData.
+	nCookies float64
+
+	// Number of buildings the player currently owns of each type. This is
+	// imported from GameStateData.
+	nBuildings map[BuildingType]int
+
+	// Upgrades that the player currently owns. This is imported from
+	// GameStateData.
 	upgradeStatus map[UpgradeID]bool
-	/* Calculated Cache Fields */
+
+	// Cookies added to the player's bank per click.
 	cookiesPerClick float64
-	cps             float64
-	/* Immutable Fields */
+
+	// Cookies added to the player's bank per second.
+	cps float64
+
+	// Base cookies added per click. This is used to calculate the actual
+	// cookiesPerClick (taking upgrades, buildings, etc. into effect).
 	cookiesPerClickRef float64
-	upgrades           map[UpgradeID]UpgradeInterface
-	buildings          map[BuildingType]BuildingInterface
+
+	// Copy of all upgrades the game knows about.
+	upgrades map[UpgradeID]UpgradeInterface
+
+	// Copy of all building types the game knows about.
+	buildings map[BuildingType]BuildingInterface
 }
 
 func NewGameStateData() *GameStateData {
@@ -59,8 +80,8 @@ func NewGameState() *GameStateStruct {
 	return &g
 }
 
-/* Public API */
-
+// Load a game given import data. This will also populate other hidden
+// reference fields.
 func (self *GameStateStruct) Load(d GameStateData) error {
 	self.loadBuildings(BUILDINGS_LOOKUP)
 	self.loadUpgrades(UPGRADES_LOOKUP)
@@ -78,6 +99,7 @@ func (self *GameStateStruct) Load(d GameStateData) error {
 	return nil
 }
 
+// Export game data.
 func (self *GameStateStruct) Dump() GameStateData {
 	d := GameStateData{
 		Version:       GAME_STATE_VERSION,
@@ -94,27 +116,36 @@ func (self *GameStateStruct) Dump() GameStateData {
 	return d
 }
 
+// Get the current number of buildings per type that the player currently owns.
 func (self *GameStateStruct) GetNBuildings() map[BuildingType]int {
 	return self.nBuildings
 }
 
+// Get a list of buildings the game knows about.
 func (self *GameStateStruct) GetBuildings() map[BuildingType]BuildingInterface {
 	return self.buildings
 }
 
+// Get a list of ugrades the game knows about.
 func (self *GameStateStruct) GetUpgrades() map[UpgradeID]UpgradeInterface {
 	return self.upgrades
 }
 
+// Get a list of upgrades and whether or not the player currently owns it.
 func (self *GameStateStruct) GetUpgradeStatus() map[UpgradeID]bool {
 	return self.upgradeStatus
 }
 
+// Get the current number of cookies the player owns.
 func (self *GameStateStruct) GetCookies() float64 {
 	return self.nCookies
 }
 
-func (self *GameStateStruct) BuyUpgrade(id UpgradeID) bool { // TODO(cripplet): Enforce upgrade cost check.
+// Attempts to buy an upgrade and subtract the cost of the upgrade from the
+// player bank. BuyUpgrade will return true if this was successful. This will
+// return false if the player has insufficient funds, if the upgrade is
+// already bought, or if the upgrade is not unlocked.
+func (self *GameStateStruct) BuyUpgrade(id UpgradeID) bool {
 	upgrade, present := self.upgrades[id]
 	to_buy := present && !self.upgradeStatus[id]
 	bought := to_buy && upgrade.GetIsUnlocked(self) && self.subtractCookies(upgrade.GetCost(self))
@@ -127,6 +158,9 @@ func (self *GameStateStruct) BuyUpgrade(id UpgradeID) bool { // TODO(cripplet): 
 	return bought
 }
 
+// Attempts to buy a building and subtract the cost of the building from the
+// player bank. BuyBuilding will return true if this was successful. This will
+// r eturn false if the player has insufficient funds.
 func (self *GameStateStruct) BuyBuilding(buildingType BuildingType) bool {
 	building, present := self.buildings[buildingType]
 	bought := present && self.subtractCookies(building.GetCost(self.nBuildings[buildingType]+1))
@@ -138,23 +172,31 @@ func (self *GameStateStruct) BuyBuilding(buildingType BuildingType) bool {
 	return bought
 }
 
-func (self *GameStateStruct) GetCPS(start time.Time, end time.Time) float64 { // TODO(cripplet): Calculate timed buffs here.
+// Get the number of cookies added to the player's bank over a given time
+// period.
+//
+// TODO(cripplet): Calculate timed buffs here by adding a list of time events.
+func (self *GameStateStruct) GetCPS(start time.Time, end time.Time) float64 {
 	return self.cps * float64(end.Sub(start)) / float64(time.Second)
 }
 
-func (self *GameStateStruct) GetCookiesPerClick() float64 { // TODO(cripplet): Calculate timed buffs here.
+// Get the number of cookies added to the player's bank per click.
+//
+// TODO(cripplet): Calculate timed buffs here by adding a list of time events
+// and add a time parameter to the function signature.
+func (self *GameStateStruct) GetCookiesPerClick() float64 {
 	return self.cookiesPerClick
 }
 
+// Commit cookies from CPS contribution to the bank.
 func (self *GameStateStruct) MineCookies(start time.Time, end time.Time) {
 	self.addCookies(self.GetCPS(start, end))
 }
 
+// Commit cookies from physical click contributions to the bank.
 func (self *GameStateStruct) Click() {
 	self.addCookies(self.GetCookiesPerClick())
 }
-
-/* End public API */
 
 func (self *GameStateStruct) setCPS(cps float64) {
 	self.cps = cps
