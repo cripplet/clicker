@@ -8,6 +8,7 @@ import (
 	"testing"
 )
 
+// Reset the Firebase DB at the preset project path.
 func ResetEnvironment(t *testing.T) {
 	_, statusCode, _, err := firebase_db.Delete(
 		cc_fb_config.CC_FIREBASE_CONFIG.Client,

@@ -9,10 +9,10 @@ import (
 var GAME_STATE_VERSION string = "v0.01"
 
 type GameStateData struct {
-	Version       string
-	NCookies      float64
-	NBuildings    map[BuildingType]int
-	UpgradeStatus map[UpgradeID]bool
+	Version       string               `json:"version"`
+	NCookies      float64              `json:"n_cookies"`
+	NBuildings    map[BuildingType]int `json:"buildings"`
+	UpgradeStatus map[UpgradeID]bool   `json:"upgrades"`
 }
 
 type GameStateStruct struct {

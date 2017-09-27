@@ -1,3 +1,5 @@
+// Package cc_fb handles CookieClicker game state representation in the Firebase DB.
+// TODO(cripplet): Move to github.com/cripplet/clicker-rest/db.
 package cc_fb
 
 import (
@@ -11,37 +13,68 @@ import (
 	"time"
 )
 
+// FBGameState is the exported state representation of Firebase database
+// data. Note that this is not the "true" JSON output as seen when pulling
+// from the database. The JSON field names are included for convenience, but
+// this type is never actually serialized.
 type FBGameState struct {
-	ID    string
-	Exist bool
+	// Unique game ID.
+	ID string `json:"id"`
 
-	// Imported Game data, used to initialize a game.
-	GameData cookie_clicker.GameStateData
+	// Placeholder boolean; when loading a nonexistent game JSON, this
+	// field will be the boolean zero value, i.e. false. This field is
+	// explictly set to true for all games.
+	Exist bool `json:"exist"`
 
-	// Calculated Game data.
-	GameObservables FBGameObservableData
+	// Imported game data, used to initialize a game. Due to Firebase
+	// shenanigans, this struct's map[ENUM]VALUE properties are instead
+	// set to map[STRING]VALUE instead. See FBGameObservableData for
+	// related comments.
+	GameData cookie_clicker.GameStateData `json:"data"`
+
+	// Calculated data from a game. These fields are read-only fields
+	// and will be automatically updated when the game has mutated.
+	GameObservables FBGameObservableData `json:"observables"`
 
 	// Metadata kept by the REST server.
-	Metadata FBGameMetadata
+	Metadata FBGameMetadata `json:"metadata"`
 }
 
+// FBGameMetadata is the metadata specific to the REST server. The actual game
+// has no knowledge of this data.
 type FBGameMetadata struct {
-	ClickHash []byte    `json:"click_hash"`
-	MineTime  time.Time `json:"mine_time"`
+	// Data useful for discouraging spamming large amount of REST click
+	// requests.
+	ClickHash []byte `json:"click_hash"`
+
+	// Last time that cookies added to the game due to CPS contributions
+	// have been calculated.
+	MineTime time.Time `json:"mine_time"`
 }
 
+// FBGameObservableData is calculated from the game and is read-only.
 type FBGameObservableData struct {
-	CookiesPerClick float64            `json:"cookies_per_click"`
-	CPS             float64            `json:"cps"`
-	BuildingCost    map[string]float64 `json:"building_cost"`
-	UpgradeCost     map[string]float64 `json:"upgrade_cost"`
+	// Number of cookies added to the game per click.
+	CookiesPerClick float64 `json:"cookies_per_click"`
+
+	// Number of cookies added to the game per second.
+	CPS float64 `json:"cps"`
+
+	// The number of cookies necessary to buy a building of that type.
+	// The key is translated from the cookie_clicker.BuildingType enum, via
+	// cookie_clicker.BUILDING_TYPE_LOOKUP.
+	BuildingCost map[string]float64 `json:"building_cost"`
+
+	// The number of cookies necessary to buy the given upgrade. The key is
+	// translated via cookie_clicker.UPGRADE_ID_LOOKUP.
+	UpgradeCost map[string]float64 `json:"upgrade_cost"`
 }
 
 type internalGameStateData struct {
 	Version       string          `json:"version"`
 	NCookies      float64         `json:"n_cookies"`
-	NBuildings    map[string]int  `json:"building"`
-	UpgradeStatus map[string]bool `json:"upgrade"`
+	NBuildings    map[string]int  `json:"buildings"`
+	UpgradeStatus map[string]bool `json:"upgrades"`
 }
 
 type internalFBGameState struct {
@@ -96,10 +129,12 @@ func fromInternalFBGameState(s internalFBGameState) FBGameState {
 	}
 }
 
-type PostID struct {
+type postID struct {
 	Name string `json:"name"`
 }
 
+// GenerateFBGameObservableData will construct a representation of the
+// read-only game fields.
 func GenerateFBGameObservableData(g *cookie_clicker.GameStateStruct) FBGameObservableData {
 	n := time.Now()
 
@@ -137,7 +172,7 @@ func newGameState() (FBGameState, error) {
 		return FBGameState{}, err
 	}
 
-	p := PostID{}
+	p := postID{}
 	_, _, eTag, err := firebase_db.Post(
 		cc_fb_config.CC_FIREBASE_CONFIG.Client,
 		fmt.Sprintf("%s/game.json", cc_fb_config.CC_FIREBASE_CONFIG.ProjectPath),
@@ -161,6 +196,10 @@ func newGameState() (FBGameState, error) {
 	return fromInternalFBGameState(i), nil
 }
 
+// LoadGameState retrieves a game from the Firebase DB (including all related
+// metadata). If the supplied ID is empty, construct a new game instead (and
+// commit to the DB). Returns an ETag value alongside the game, which must be
+// passed into SaveGameState. A load / save cycle is atomic (or will fail).
 func LoadGameState(id string) (FBGameState, string, error) {
 	if id == "" {
 		g, err := newGameState()
@@ -187,6 +226,10 @@ func LoadGameState(id string) (FBGameState, string, error) {
 	return fromInternalFBGameState(i), eTag, nil
 }
 
+// SaveGameState commits a game to the Firebase DB. ETag was supplied
+// previously when loading the game. LoadGameState will fail if the given
+// ETag does not match the current DB ETag. The user is responsible for
+// retrying the load / save cycle in case of failure.
 func SaveGameState(g FBGameState, eTag string) error {
 	i := toInternalFBGameState(g)
 	iJSON, err := json.Marshal(&i)
