@@ -3,8 +3,11 @@ package cookie_clicker
 // UpgradeInterface is the public API for all upgrades.
 //
 // TOOD(cripplet): Add GetDescription.
+//
 // TODO(cripplet): Add GetCPSMultiplier.
+//
 // TODO(cripplet): Change GetBuildingMultiplier -> GetBuildingMultipliers(...) map[BuildingType]float64
+//
 // TODO(cripplet): Remove GetBuildingType
 type UpgradeInterface interface {
 	GetName() string
