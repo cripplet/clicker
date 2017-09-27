@@ -171,7 +171,7 @@ func TestMineHandler(t *testing.T) {
 	json.Unmarshal(respRec.Body.Bytes(), &g)
 
 	s, eTag, _ := cc_fb.LoadGameState(getGameIDFromPath(g.Path))
-	s.GameData.NBuildings[cookie_clicker.BUILDING_TYPE_MOUSE] = 1
+	s.GameData.NBuildings[cookie_clicker.BUILDING_TYPE_CURSOR] = 1
 	cc_fb.SaveGameState(s, eTag)
 
 	req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("/game/%s/cookie/mine/", getGameIDFromPath(g.Path)), nil)
@@ -214,7 +214,7 @@ func TestBuildingHandlerInsufficientFunds(t *testing.T) {
 	g := NewGameResponse{}
 	json.Unmarshal(respRec.Body.Bytes(), &g)
 
-	req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("/game/%s/building/%s/", getGameIDFromPath(g.Path), cookie_clicker.BUILDING_TYPE_LOOKUP[cookie_clicker.BUILDING_TYPE_MOUSE]), nil)
+	req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("/game/%s/building/%s/", getGameIDFromPath(g.Path), cookie_clicker.BUILDING_TYPE_LOOKUP[cookie_clicker.BUILDING_TYPE_CURSOR]), nil)
 	respRec = httptest.NewRecorder()
 	http.HandlerFunc(BuildingHandler).ServeHTTP(respRec, req)
 
@@ -237,13 +237,13 @@ func TestBuildingHandler(t *testing.T) {
 	game := cookie_clicker.NewGameState()
 	game.Load(s.GameData)
 	var i float64
-	for i = 0; i < game.GetBuildings()[cookie_clicker.BUILDING_TYPE_MOUSE].GetCost(1); i++ {
+	for i = 0; i < game.GetBuildings()[cookie_clicker.BUILDING_TYPE_CURSOR].GetCost(1); i++ {
 		game.Click()
 	}
 	s.GameData = game.Dump()
 	cc_fb.SaveGameState(s, eTag)
 
-	req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("/game/%s/building/%s/", getGameIDFromPath(g.Path), cookie_clicker.BUILDING_TYPE_LOOKUP[cookie_clicker.BUILDING_TYPE_MOUSE]), nil)
+	req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("/game/%s/building/%s/", getGameIDFromPath(g.Path), cookie_clicker.BUILDING_TYPE_LOOKUP[cookie_clicker.BUILDING_TYPE_CURSOR]), nil)
 	respRec = httptest.NewRecorder()
 	http.HandlerFunc(BuildingHandler).ServeHTTP(respRec, req)
 
@@ -252,8 +252,8 @@ func TestBuildingHandler(t *testing.T) {
 	}
 
 	s, _, _ = cc_fb.LoadGameState(getGameIDFromPath(g.Path))
-	if s.GameData.NBuildings[cookie_clicker.BUILDING_TYPE_MOUSE] != 1 {
-		t.Errorf("Game state does not reflect building bought: %d buildings found", s.GameData.NBuildings[cookie_clicker.BUILDING_TYPE_MOUSE])
+	if s.GameData.NBuildings[cookie_clicker.BUILDING_TYPE_CURSOR] != 1 {
+		t.Errorf("Game state does not reflect building bought: %d buildings found", s.GameData.NBuildings[cookie_clicker.BUILDING_TYPE_CURSOR])
 	}
 }
 

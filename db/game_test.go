@@ -19,7 +19,7 @@ func TestToFromInternalFBGameObservableData(t *testing.T) {
 		CookiesPerClick: cookiesPerClick,
 		CPS:             cps,
 		BuildingCost: map[cookie_clicker.BuildingType]float64{
-			cookie_clicker.BUILDING_TYPE_MOUSE: buildingCost,
+			cookie_clicker.BUILDING_TYPE_CURSOR: buildingCost,
 		},
 		UpgradeCost: map[cookie_clicker.UpgradeID]float64{
 			cookie_clicker.UPGRADE_ID_REINFORCED_INDEX_FINGER: upgradeCost,
@@ -30,7 +30,7 @@ func TestToFromInternalFBGameObservableData(t *testing.T) {
 		CookiesPerClick: cookiesPerClick,
 		CPS:             cps,
 		BuildingCost: map[string]float64{
-			cookie_clicker.BUILDING_TYPE_LOOKUP[cookie_clicker.BUILDING_TYPE_MOUSE]: buildingCost,
+			cookie_clicker.BUILDING_TYPE_LOOKUP[cookie_clicker.BUILDING_TYPE_CURSOR]: buildingCost,
 		},
 		UpgradeCost: map[string]float64{
 			cookie_clicker.UPGRADE_ID_LOOKUP[cookie_clicker.UPGRADE_ID_REINFORCED_INDEX_FINGER]: upgradeCost,
@@ -61,7 +61,7 @@ func TestToFromInternalFBGameState(t *testing.T) {
 		CookiesPerClick: cookiesPerClick,
 		CPS:             cps,
 		BuildingCost: map[cookie_clicker.BuildingType]float64{
-			cookie_clicker.BUILDING_TYPE_MOUSE: buildingCost,
+			cookie_clicker.BUILDING_TYPE_CURSOR: buildingCost,
 		},
 		UpgradeCost: map[cookie_clicker.UpgradeID]float64{
 			cookie_clicker.UPGRADE_ID_REINFORCED_INDEX_FINGER: upgradeCost,
@@ -71,7 +71,7 @@ func TestToFromInternalFBGameState(t *testing.T) {
 		Version:  version,
 		NCookies: nCookies,
 		NBuildings: map[cookie_clicker.BuildingType]int{
-			cookie_clicker.BUILDING_TYPE_MOUSE: nMice,
+			cookie_clicker.BUILDING_TYPE_CURSOR: nMice,
 		},
 		UpgradeStatus: map[cookie_clicker.UpgradeID]bool{
 			cookie_clicker.UPGRADE_ID_REINFORCED_INDEX_FINGER: upgradeBought,
@@ -88,7 +88,7 @@ func TestToFromInternalFBGameState(t *testing.T) {
 		CookiesPerClick: cookiesPerClick,
 		CPS:             cps,
 		BuildingCost: map[string]float64{
-			cookie_clicker.BUILDING_TYPE_LOOKUP[cookie_clicker.BUILDING_TYPE_MOUSE]: buildingCost,
+			cookie_clicker.BUILDING_TYPE_LOOKUP[cookie_clicker.BUILDING_TYPE_CURSOR]: buildingCost,
 		},
 		UpgradeCost: map[string]float64{
 			cookie_clicker.UPGRADE_ID_LOOKUP[cookie_clicker.UPGRADE_ID_REINFORCED_INDEX_FINGER]: upgradeCost,
@@ -98,7 +98,7 @@ func TestToFromInternalFBGameState(t *testing.T) {
 		Version:  version,
 		NCookies: nCookies,
 		NBuildings: map[string]int{
-			cookie_clicker.BUILDING_TYPE_LOOKUP[cookie_clicker.BUILDING_TYPE_MOUSE]: nMice,
+			cookie_clicker.BUILDING_TYPE_LOOKUP[cookie_clicker.BUILDING_TYPE_CURSOR]: nMice,
 		},
 		UpgradeStatus: map[string]bool{
 			cookie_clicker.UPGRADE_ID_LOOKUP[cookie_clicker.UPGRADE_ID_REINFORCED_INDEX_FINGER]: upgradeBought,
