@@ -46,6 +46,16 @@ func TestRegexpMatchNamedGroups(t *testing.T) {
 	}
 }
 
+func TestGameRouterNonexistentPath(t *testing.T) {
+	req, _ := http.NewRequest(http.MethodGet, "/nonexistent-path", nil)
+	respRec := httptest.NewRecorder()
+	http.HandlerFunc(GameRouter).ServeHTTP(respRec, req)
+
+	if respRec.Result().StatusCode != http.StatusNotFound {
+		t.Errorf("Unexpected HTTP error code: %d != %d", respRec.Result().StatusCode, http.StatusNotFound)
+	}
+}
+
 func TestNewGameHandler(t *testing.T) {
 	cc_fb.ResetEnvironment(t)
 
@@ -182,19 +192,19 @@ func TestMineHandler(t *testing.T) {
 	}
 }
 
-func TestBuyBuildingHandlerNonexistentBuilding(t *testing.T) {
+func TestBuildingHandlerNonexistentBuilding(t *testing.T) {
 	cc_fb.ResetEnvironment(t)
 
 	req, _ := http.NewRequest(http.MethodPost, "/game/some-id/building/nonexistent-building-type", nil)
 	respRec := httptest.NewRecorder()
-	http.HandlerFunc(BuyBuildingHandler).ServeHTTP(respRec, req)
+	http.HandlerFunc(BuildingHandler).ServeHTTP(respRec, req)
 
 	if respRec.Result().StatusCode != http.StatusNotFound {
 		t.Errorf("Unexpected HTTP error code %d != %d", respRec.Result().StatusCode, http.StatusNotFound)
 	}
 }
 
-func TestBuyBuildingHandlerInsufficientFunds(t *testing.T) {
+func TestBuildingHandlerInsufficientFunds(t *testing.T) {
 	cc_fb.ResetEnvironment(t)
 
 	req, _ := http.NewRequest(http.MethodPost, "/game/", nil)
@@ -206,14 +216,14 @@ func TestBuyBuildingHandlerInsufficientFunds(t *testing.T) {
 
 	req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("/game/%s/building/%s/", getGameIDFromPath(g.Path), cookie_clicker.BUILDING_TYPE_LOOKUP[cookie_clicker.BUILDING_TYPE_MOUSE]), nil)
 	respRec = httptest.NewRecorder()
-	http.HandlerFunc(BuyBuildingHandler).ServeHTTP(respRec, req)
+	http.HandlerFunc(BuildingHandler).ServeHTTP(respRec, req)
 
 	if respRec.Result().StatusCode != http.StatusPaymentRequired {
 		t.Errorf("Unexpected HTTP error code %d != %d", respRec.Result().StatusCode, http.StatusPaymentRequired)
 	}
 }
 
-func TestBuyBuildingHandler(t *testing.T) {
+func TestBuildingHandler(t *testing.T) {
 	cc_fb.ResetEnvironment(t)
 
 	req, _ := http.NewRequest(http.MethodPost, "/game/", nil)
@@ -235,7 +245,7 @@ func TestBuyBuildingHandler(t *testing.T) {
 
 	req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("/game/%s/building/%s/", getGameIDFromPath(g.Path), cookie_clicker.BUILDING_TYPE_LOOKUP[cookie_clicker.BUILDING_TYPE_MOUSE]), nil)
 	respRec = httptest.NewRecorder()
-	http.HandlerFunc(BuyBuildingHandler).ServeHTTP(respRec, req)
+	http.HandlerFunc(BuildingHandler).ServeHTTP(respRec, req)
 
 	if respRec.Result().StatusCode != http.StatusNoContent {
 		t.Errorf("Unexpected HTTP error code %d != %d", respRec.Result().StatusCode, http.StatusNoContent)
@@ -247,19 +257,19 @@ func TestBuyBuildingHandler(t *testing.T) {
 	}
 }
 
-func TestBuyUpgradeHandlerNonexistentUpgrade(t *testing.T) {
+func TestUpgradeHandlerNonexistentUpgrade(t *testing.T) {
 	cc_fb.ResetEnvironment(t)
 
 	req, _ := http.NewRequest(http.MethodPost, "/game/some-id/upgrade/nonexistent-upgrade", nil)
 	respRec := httptest.NewRecorder()
-	http.HandlerFunc(BuyUpgradeHandler).ServeHTTP(respRec, req)
+	http.HandlerFunc(UpgradeHandler).ServeHTTP(respRec, req)
 
 	if respRec.Result().StatusCode != http.StatusNotFound {
 		t.Errorf("Unexpected HTTP error code %d != %d", respRec.Result().StatusCode, http.StatusNotFound)
 	}
 }
 
-func TestBuyUpgradeHandlerInsufficientHandler(t *testing.T) {
+func TestUpgradeHandlerInsufficientHandler(t *testing.T) {
 	cc_fb.ResetEnvironment(t)
 
 	req, _ := http.NewRequest(http.MethodPost, "/game/", nil)
@@ -271,14 +281,14 @@ func TestBuyUpgradeHandlerInsufficientHandler(t *testing.T) {
 
 	req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("/game/%s/upgrade/%s/", getGameIDFromPath(g.Path), cookie_clicker.UPGRADE_ID_LOOKUP[cookie_clicker.UPGRADE_ID_REINFORCED_INDEX_FINGER]), nil)
 	respRec = httptest.NewRecorder()
-	http.HandlerFunc(BuyUpgradeHandler).ServeHTTP(respRec, req)
+	http.HandlerFunc(UpgradeHandler).ServeHTTP(respRec, req)
 
 	if respRec.Result().StatusCode != http.StatusPaymentRequired {
 		t.Errorf("Unexpected HTTP error code %d != %d", respRec.Result().StatusCode, http.StatusPaymentRequired)
 	}
 }
 
-func TestBuyUpgradeHandler(t *testing.T) {
+func TestUpgradeHandler(t *testing.T) {
 	cc_fb.ResetEnvironment(t)
 
 	req, _ := http.NewRequest(http.MethodPost, "/game/", nil)
@@ -300,7 +310,7 @@ func TestBuyUpgradeHandler(t *testing.T) {
 
 	req, _ = http.NewRequest(http.MethodPost, fmt.Sprintf("/game/%s/upgrade/%s/", getGameIDFromPath(g.Path), cookie_clicker.UPGRADE_ID_LOOKUP[cookie_clicker.UPGRADE_ID_REINFORCED_INDEX_FINGER]), nil)
 	respRec = httptest.NewRecorder()
-	http.HandlerFunc(BuyUpgradeHandler).ServeHTTP(respRec, req)
+	http.HandlerFunc(UpgradeHandler).ServeHTTP(respRec, req)
 
 	if respRec.Result().StatusCode != http.StatusNoContent {
 		t.Errorf("Unexpected HTTP error code %d != %d", respRec.Result().StatusCode, http.StatusNoContent)

@@ -1,3 +1,4 @@
+// Package cc_rest_lib provides the handlers for managing and mutating CookieClicker games to the Firebase DB.
 package cc_rest_lib
 
 import (
@@ -14,11 +15,11 @@ import (
 	"time"
 )
 
-var newGameRegex *regexp.Regexp = regexp.MustCompile(`^/game(/)?$`)
-var clickRegex *regexp.Regexp = regexp.MustCompile(`^/game/(?P<gameID>[\w-]*)/cookie/click(/)?$`)
-var mineRegex *regexp.Regexp = regexp.MustCompile(`^/game/(?P<gameID>[\w-]*)/cookie/mine(/)?$`)
-var buyBuildingRegex *regexp.Regexp = regexp.MustCompile(`^/game/(?P<gameID>[\w-]*)/building/(?P<buildingType>[\w-]*)(/)?$`)
-var buyUpgradeRegex *regexp.Regexp = regexp.MustCompile(`^/game/(?P<gameID>[\w-]*)/upgrade/(?P<upgradeID>[\w-]*)(/)?$`)
+var NewGameRegex *regexp.Regexp = regexp.MustCompile(`^/game(/)?$`)
+var ClickRegex *regexp.Regexp = regexp.MustCompile(`^/game/(?P<gameID>[\w-]*)/cookie/click(/)?$`)
+var MineRegex *regexp.Regexp = regexp.MustCompile(`^/game/(?P<gameID>[\w-]*)/cookie/mine(/)?$`)
+var BuildingRegex *regexp.Regexp = regexp.MustCompile(`^/game/(?P<gameID>[\w-]*)/building/(?P<buildingType>[\w-]*)(/)?$`)
+var UpgradeRegex *regexp.Regexp = regexp.MustCompile(`^/game/(?P<gameID>[\w-]*)/upgrade/(?P<upgradeID>[\w-]*)(/)?$`)
 
 func regexpMatchNamedGroups(r *regexp.Regexp, s string) map[string]string {
 	ret := map[string]string{}
@@ -31,10 +32,17 @@ func regexpMatchNamedGroups(r *regexp.Regexp, s string) map[string]string {
 	return ret
 }
 
+// NewGameResponse encapsulates the game state resource path.
 type NewGameResponse struct {
+	// The full URL of the game state,
+	// e.g. https://some-project-id.firebaseio.com/game/some-game-id.json
 	Path string `json:"path"`
 }
 
+// NewGameHandler creates a new game and stores the game state in the database.
+// The URL must match NewGameRegex. The only valid method is a POST request
+// with an empty body. A successful POST request will return a 201 CREATED
+// response with a supplied NewGameResponse.
 func NewGameHandler(resp http.ResponseWriter, req *http.Request) {
 	switch {
 	case req.Method == http.MethodPost:
@@ -61,12 +69,29 @@ func NewGameHandler(resp http.ResponseWriter, req *http.Request) {
 }
 
 type ClickRequest struct {
+	// Number of times the cookie is clicked by the user.
 	NTimes int    `json:"n_times"`
+
+	// Byte array of the correct validation SHA256 hash
+	// associated with clicking the cookie NTimes.
+	//
+	// JSON will represent this as a Base64-encoded string,
+        // e.g. LUt2MTZEOXc3d3I2dVV0RExFS2Q=.
+	//
+	// The current hash is provided in the game state. The correct Hash
+	// value can be calculated by hashing (unencoded byte array) NTimes.
 	Hash   []byte `json:"hash"`
 }
 
+// ClickHandler mutates the given game by incrementing the number of cookies
+// in the bank by clicking "the cookie" some number of times. The URL must
+// match ClickHandlerRegex. The only valid method is a POST request with a
+// supplied ClickRequest body. A successful POST request will return a
+// 204 NO CONTENT response with an empty body. ClickHandler may return with
+// 412 PRECONDITION FAILED in the case of a race condition. The caller is
+// responsible for reissuing the request.
 func ClickHandler(resp http.ResponseWriter, req *http.Request) {
-	gameID := regexpMatchNamedGroups(clickRegex, req.URL.Path)["gameID"]
+	gameID := regexpMatchNamedGroups(ClickRegex, req.URL.Path)["gameID"]
 	switch req.Method {
 	case http.MethodPost:
 		content, err := ioutil.ReadAll(req.Body)
@@ -126,8 +151,15 @@ func ClickHandler(resp http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// MineHandler mutates the given game by incrementing the number of cookies
+// in the bank by a calculated amount scaled since the last time this method
+// was called. The URL must match MineHandlerRegex. The only valid method is
+// a POST request with an empty body. A successful POST request will return a
+// 204 NO CONTENT response with an empty body. MineHandler may return with
+// 412 PRECONDITION FAILED in the case of a race condition. The caller is
+// responsible for reissuing the request.
 func MineHandler(resp http.ResponseWriter, req *http.Request) {
-	gameID := regexpMatchNamedGroups(mineRegex, req.URL.Path)["gameID"]
+	gameID := regexpMatchNamedGroups(MineRegex, req.URL.Path)["gameID"]
 	switch req.Method {
 	case http.MethodPost:
 		s, eTag, err := cc_fb.LoadGameState(gameID)
@@ -159,9 +191,17 @@ func MineHandler(resp http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func BuyBuildingHandler(resp http.ResponseWriter, req *http.Request) {
-	gameID := regexpMatchNamedGroups(buyBuildingRegex, req.URL.Path)["gameID"]
-	buildingType, present := cookie_clicker.BUILDING_TYPE_REVERSE_LOOKUP[regexpMatchNamedGroups(buyBuildingRegex, req.URL.Path)["buildingType"]]
+// BuildingHandler mutates the given game by incrementing the given building
+// by spending cookies. The URL must match BuildingRegex. The only valid
+// method is a POST request with an empty body. A successful POST request will
+// return a 204 NO CONTENT response with an empty body. BuildingHandler will
+// return with 402 PAYMENT REQUIRED in the case the user does not have enough
+// cookies to buy a new building. BuildingHandler may return with
+// 412 PRECONDITION FAILED in the case of a race condition. The caller is
+// responsible for reissuing the request.
+func BuildingHandler(resp http.ResponseWriter, req *http.Request) {
+	gameID := regexpMatchNamedGroups(BuildingRegex, req.URL.Path)["gameID"]
+	buildingType, present := cookie_clicker.BUILDING_TYPE_REVERSE_LOOKUP[regexpMatchNamedGroups(BuildingRegex, req.URL.Path)["buildingType"]]
 	if !present {
 		resp.WriteHeader(http.StatusNotFound)
 		return
@@ -201,9 +241,17 @@ func BuyBuildingHandler(resp http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func BuyUpgradeHandler(resp http.ResponseWriter, req *http.Request) {
-	gameID := regexpMatchNamedGroups(buyUpgradeRegex, req.URL.Path)["gameID"]
-	upgradeID, present := cookie_clicker.UPGRADE_ID_REVERSE_LOOKUP[regexpMatchNamedGroups(buyUpgradeRegex, req.URL.Path)["upgradeID"]]
+// UpgradeHandler mutates the given game by incrementing the given upgrade by
+// spending cookies. The URL must match UpgradeRegex. The only valid method is
+// a POST request with an empty body. A successful POST request will return a
+// 204 NO CONTENT response with an empty body. UpgradeHandler will
+// return with 402 PAYMENT REQUIRED in the case the user does not have enough
+// cookies to buy the upgrade. UpgradeHandler will return with
+// 412 PRECONDITION FAILED in the case of a race condition. The caller is
+// responsible for reissuing the request.
+func UpgradeHandler(resp http.ResponseWriter, req *http.Request) {
+	gameID := regexpMatchNamedGroups(UpgradeRegex, req.URL.Path)["gameID"]
+	upgradeID, present := cookie_clicker.UPGRADE_ID_REVERSE_LOOKUP[regexpMatchNamedGroups(UpgradeRegex, req.URL.Path)["upgradeID"]]
 	if !present {
 		resp.WriteHeader(http.StatusNotFound)
 		return
@@ -243,22 +291,25 @@ func BuyUpgradeHandler(resp http.ResponseWriter, req *http.Request) {
 	}
 }
 
+// GameRouter is responsible for routing all URLs to an appropriate handler.
 func GameRouter(resp http.ResponseWriter, req *http.Request) {
 	switch {
-	case newGameRegex.MatchString(req.URL.Path):
+	case NewGameRegex.MatchString(req.URL.Path):
 		NewGameHandler(resp, req)
 		break
-	case clickRegex.MatchString(req.URL.Path):
+	case ClickRegex.MatchString(req.URL.Path):
 		ClickHandler(resp, req)
 		break
-	case mineRegex.MatchString(req.URL.Path):
+	case MineRegex.MatchString(req.URL.Path):
 		MineHandler(resp, req)
 		break
-	case buyBuildingRegex.MatchString(req.URL.Path):
-		BuyBuildingHandler(resp, req)
+	case BuildingRegex.MatchString(req.URL.Path):
+		BuildingHandler(resp, req)
 		break
-	case buyUpgradeRegex.MatchString(req.URL.Path):
-		BuyUpgradeHandler(resp, req)
+	case UpgradeRegex.MatchString(req.URL.Path):
+		UpgradeHandler(resp, req)
 		break
+	default:
+		resp.WriteHeader(http.StatusNotFound)
 	}
 }
