@@ -3,6 +3,8 @@ package firebase_db
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 )
 
@@ -35,21 +37,10 @@ type FirebaseDBEventData struct {
 	Data []byte `json:"data"`
 }
 
-type FirebaseDBEventAuthRevokedError struct {
-	message string
-}
-
-func (self *FirebaseDBEventAuthRevokedError) Error() string {
-	return self.message
-}
-
 func (self *FirebaseDBStreamEvent) GetEventData() (FirebaseDBEventData, error) {
 	f := FirebaseDBEventData{}
 	if self.Event == AUTH_REVOKED {
-		e := FirebaseDBEventAuthRevokedError{
-			message: string(self.Data),
-		}
-		return f, &e
+		return f, errors.New(fmt.Sprintf("Authorization revoked: %s", string(self.Data)))
 	}
 	err := json.Unmarshal(self.Data, &f)
 	return f, err

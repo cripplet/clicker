@@ -40,8 +40,8 @@ func TestGetEventDataAuthRevoked(t *testing.T) {
 		Data:  []byte("Error message"),
 	}
 	_, e := stream_event.GetEventData()
-	if e.Error() != string(stream_event.Data) {
-		t.Errorf("Unexpected error message: %s != %s", e.Error(), string(stream_event.Data))
+	if e == nil {
+		t.Errorf("Expected error was not raised")
 	}
 }
 
