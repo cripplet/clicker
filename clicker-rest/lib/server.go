@@ -68,26 +68,21 @@ func NewGameHandler(resp http.ResponseWriter, req *http.Request) {
 	}
 }
 
-type ClickEvent struct {
+type ClickRequest struct {
+	// List of monotonically increasing click time events,
+	// i.e. Events[i] < Events[i + 1].
+	Events []time.Time `json:"events"`
+
 	// Byte array of the correct validation SHA256 hash
-	// associated with clicking the cookie NTimes.
+	// associated with clicking the cookie len(Clicks) times.
 	//
 	// JSON will represent this as a Base64-encoded string,
 	// e.g. LUt2MTZEOXc3d3I2dVV0RExFS2Q=.
 	//
 	// The current hash is provided in the game state. The correct Hash
-	// value can be calculated by hashing (unencoded byte array) NTimes.
+	// value can be calculated by hashing (unencoded byte array)
+	// len(Clicks) times.
 	Hash []byte `json:"hash"`
-
-	// Time that this click event occured.
-	ClickTime time.Time `json:"click_time"`
-}
-
-type ClickRequest struct {
-	// List of click events, where each each event's ClickTime is
-	// monotonically increasing
-	// (i.e. Clicks[i].ClickTime < Clicks[i + 1].ClickTime)
-	Clicks []ClickEvent `json:"clicks"`
 }
 
 // ClickHandler mutates the given game by incrementing the number of cookies
@@ -107,7 +102,6 @@ func ClickHandler(resp http.ResponseWriter, req *http.Request) {
 			break
 		}
 
-		fmt.Printf("%s", string(content))
 		clickRequest := ClickRequest{}
 		err = json.Unmarshal(content, &clickRequest)
 		if err != nil {
@@ -126,30 +120,31 @@ func ClickHandler(resp http.ResponseWriter, req *http.Request) {
 			break
 		}
 
-		g := cookie_clicker.NewGameState()
-		g.Load(s.GameData)
-
-		hash := s.Metadata.ClickHash
+		clickHash := s.Metadata.ClickHash
 		clickTime := s.Metadata.ClickTime
-		valid := true
 
-		for _, clickEvent := range clickRequest.Clicks {
-			newHashBytes := sha256.Sum256(hash)
-			hash = newHashBytes[:]
-			valid = valid && bytes.Equal(hash, clickEvent.Hash) && clickTime.Before(clickEvent.ClickTime)
-			if valid {
-				g.Click()
-			} else {
-				break
-			}
-			clickTime = clickEvent.ClickTime
+		valid := true
+		for _, event := range clickRequest.Events {
+			valid = valid && clickTime.Before(event)
+			newHashBytes := sha256.Sum256(clickHash)
+			clickHash = newHashBytes[:]
+			clickTime = event
 		}
+
+		valid = valid && bytes.Equal(clickHash, clickRequest.Hash)
 		if !valid {
 			resp.WriteHeader(http.StatusBadRequest)
 			break
 		}
 
-		s.Metadata.ClickHash = hash
+		g := cookie_clicker.NewGameState()
+		g.Load(s.GameData)
+
+		for range clickRequest.Events {
+			g.Click()
+		}
+
+		s.Metadata.ClickHash = clickHash
 		s.Metadata.ClickTime = clickTime
 
 		s.GameData = g.Dump()

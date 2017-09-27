@@ -100,7 +100,7 @@ func TestClickHandler(t *testing.T) {
 	json.Unmarshal(respRec.Body.Bytes(), &g)
 
 	clickRequest := ClickRequest{
-		Clicks: []ClickEvent{},
+		Events: []time.Time{},
 	}
 
 	s, _, err := cc_fb.LoadGameState(getGameIDFromPath(g.Path))
@@ -108,11 +108,12 @@ func TestClickHandler(t *testing.T) {
 	for i := 0; i < nCookies; i++ {
 		newHashBytes := sha256.Sum256(h)
 		h = newHashBytes[:]
-		clickRequest.Clicks = append(clickRequest.Clicks, ClickEvent{
-			Hash:      h,
-			ClickTime: time.Now(),
-		})
+		clickRequest.Events = append(clickRequest.Events, time.Now())
 	}
+	clickRequest.Hash = h
+
+	clickTime := s.Metadata.ClickTime
+	clickHash := h
 
 	clickRequestJSON, _ := json.Marshal(&clickRequest)
 
@@ -131,6 +132,14 @@ func TestClickHandler(t *testing.T) {
 
 	if s.GameData.NCookies == 0 {
 		t.Error("Zero cookies when expecting more")
+	}
+
+	if !clickTime.Before(s.Metadata.ClickTime) {
+		t.Error("Click time was not set upon a successful click request")
+	}
+
+	if !bytes.Equal(clickHash, s.Metadata.ClickHash) {
+		t.Error("Click hash was not set upon a successful click request")
 	}
 }
 
@@ -151,12 +160,10 @@ func TestClickHandlerInvalidTime(t *testing.T) {
 	h = newHashBytes[:]
 
 	clickRequest := ClickRequest{
-		Clicks: []ClickEvent{
-			ClickEvent{
-				Hash:      h,
-				ClickTime: n,
-			},
+		Events: []time.Time{
+			n,
 		},
+		Hash: h,
 	}
 
 	clickRequestJSON, _ := json.Marshal(&clickRequest)
@@ -181,12 +188,10 @@ func TestClickHandlerInvalidHash(t *testing.T) {
 	json.Unmarshal(respRec.Body.Bytes(), &g)
 
 	clickRequest := ClickRequest{
-		Clicks: []ClickEvent{
-			ClickEvent{
-				Hash:      []byte("invalid-hash"),
-				ClickTime: time.Now(),
-			},
+		Events: []time.Time{
+			time.Now(),
 		},
+		Hash: []byte("invalid-hash"),
 	}
 	clickRequestJSON, _ := json.Marshal(&clickRequest)
 
