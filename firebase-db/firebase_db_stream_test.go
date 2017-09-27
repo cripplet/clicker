@@ -75,7 +75,7 @@ func TestStream(t *testing.T) {
 		line_tokens := bytes.SplitN(line, []byte(": "), 2)
 		switch string(line_tokens[0]) {
 			case "event":
-				e.Event = EVENT_TYPE_LOOKUP[string(line_tokens[1])]
+				e.Event = EVENT_TYPE_REVERSE_LOOKUP[string(line_tokens[1])]
 				break
 			case "data":
 				e.Data = append(e.Data, line_tokens[1]...)

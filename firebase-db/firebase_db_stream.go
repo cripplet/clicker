@@ -18,13 +18,15 @@ const (
 	AUTH_REVOKED
 )
 
-var EVENT_TYPE_LOOKUP map[string]EventType = map[string]EventType{
-	"put":          PUT,
-	"patch":        PATCH,
-	"keep-alive":   KEEP_ALIVE,
-	"cancel":       CANCEL,
-	"auth_revoked": AUTH_REVOKED,
+var EVENT_TYPE_LOOKUP map[EventType]string = map[EventType]string{
+	PUT:          "put",
+	PATCH:        "patch",
+	KEEP_ALIVE:   "keep-alive",
+	CANCEL:       "cancel",
+	AUTH_REVOKED: "auth_revoked",
 }
+
+var EVENT_TYPE_REVERSE_LOOKUP map[string]EventType = map[string]EventType{}
 
 // See https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events#Event_stream_format.
 type FirebaseDBStreamEvent struct {
@@ -64,4 +66,10 @@ func stream(
 	b_reader := bufio.NewScanner(resp.Body)
 
 	return b_reader, resp.StatusCode, err
+}
+
+func init() {
+	for eventType, eventTypeString := range EVENT_TYPE_LOOKUP {
+		EVENT_TYPE_REVERSE_LOOKUP[eventTypeString] = eventType
+	}
 }
