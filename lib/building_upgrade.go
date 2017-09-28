@@ -27,7 +27,7 @@ func (self *buildingUpgrade) GetDescription() string {
 }
 
 func (self *buildingUpgrade) GetIsUnlocked(g *GameStateStruct) bool {
-	return (*g).GetNBuildings()[self.GetBuildingType()] >= self.minimumBuildings
+	return (*g).GetNBuildings()[self.buildingType] >= self.minimumBuildings
 }
 
 func (self *buildingUpgrade) GetCost(g *GameStateStruct) float64 {
@@ -38,12 +38,17 @@ func (self *buildingUpgrade) GetName() string {
 	return self.name
 }
 
-func (self *buildingUpgrade) GetBuildingType() BuildingType {
-	return self.buildingType
-}
-
-func (self *buildingUpgrade) GetBuildingMultiplier(g *GameStateStruct) float64 {
-	return self.buildingMultiplier
+func (self *buildingUpgrade) GetBuildingMultipliers(g *GameStateStruct) map[BuildingType]float64 {
+	c := map[BuildingType]float64{}
+	var i BuildingType
+	for i = BuildingType(0); i < BUILDING_TYPE_ENUM_EOF; i++ {
+		if self.buildingType == i {
+			c[i] = self.buildingMultiplier
+		} else {
+			c[i] = 1
+		}
+	}
+	return c
 }
 
 func (self *buildingUpgrade) GetClickMultiplier(g *GameStateStruct) float64 {

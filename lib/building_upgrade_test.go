@@ -22,8 +22,8 @@ func TestMakeSimpleUpgrade(t *testing.T) {
 		t.Errorf("Expected upgrade cost %e, got %e", 100, u.GetCost(s))
 	}
 
-	if u.GetBuildingMultiplier(s) != 2 {
-		t.Errorf("Expected BMul %e, got %e", 2, u.GetBuildingMultiplier(s))
+	if u.GetBuildingMultipliers(s)[BUILDING_TYPE_CURSOR] != 2 {
+		t.Errorf("Expected BMul %e, got %e", 2, u.GetBuildingMultipliers(s)[BUILDING_TYPE_CURSOR])
 	}
 
 	if !u.GetIsUnlocked(s) {

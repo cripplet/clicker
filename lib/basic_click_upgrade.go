@@ -38,8 +38,13 @@ func (self *basicClickUpgrade) GetBuildingType() BuildingType {
 	return BUILDING_TYPE_ENUM_EOF
 }
 
-func (self *basicClickUpgrade) GetBuildingMultiplier(g *GameStateStruct) float64 {
-	return 1
+func (self *basicClickUpgrade) GetBuildingMultipliers(g *GameStateStruct) map[BuildingType]float64 {
+	c := map[BuildingType]float64{}
+	var i BuildingType
+	for i = BuildingType(0); i < BUILDING_TYPE_ENUM_EOF; i++ {
+		c[i] = 1
+	}
+	return c
 }
 
 func (self *basicClickUpgrade) GetClickMultiplier(g *GameStateStruct) float64 {

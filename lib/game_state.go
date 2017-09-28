@@ -282,8 +282,8 @@ func (self *GameStateStruct) calculateCPS() float64 {
 	}
 
 	for _, upgrade := range boughtUpgrades {
-		if upgrade.GetBuildingType() < BUILDING_TYPE_ENUM_EOF {
-			buildingCPSRefCopy[upgrade.GetBuildingType()] *= upgrade.GetBuildingMultiplier(self)
+		for buildingType, buildingMultiplier := range upgrade.GetBuildingMultipliers(self) {
+			buildingCPSRefCopy[buildingType] *= buildingMultiplier
 		}
 	}
 
