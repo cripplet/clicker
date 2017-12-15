@@ -52,9 +52,9 @@ func (self *FirebaseDBStreamEvent) GetEventData() (FirebaseDBEventData, error) {
 func stream(
 	c *http.Client,
 	path string,
-	query_parameters map[string]string) (*bufio.Scanner, int, error) {
+	queryParameters map[string]string) (*bufio.Reader, int, error) {
 
-	path += paramToURL(query_parameters)
+	path += paramToURL(queryParameters)
 	req, err := http.NewRequest(http.MethodGet, path, nil)
 	if err != nil {
 		return nil, 0, err
@@ -64,9 +64,13 @@ func stream(
 
 	resp, err := c.Do(req)
 
-	b_reader := bufio.NewScanner(resp.Body)
+	r := bufio.NewReader(resp.Body)
 
-	return b_reader, resp.StatusCode, err
+	return r, resp.StatusCode, err
+}
+
+func doRead(r *bufio.Reader) {
+
 }
 
 func init() {
